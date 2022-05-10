@@ -4,7 +4,7 @@
 int main(int argc, char *argv[]){
 
     char *options;
-    int num_ops, verbose, idx = 1;
+    int num_ops, verboseBool = 0, strictBool = 0, idx = 1;
 
     if (argc < 3){
         fprintf(stderr, "Usage: mytar [ctxvS]f tarfile [ path [ ... ] ]\n");
@@ -33,10 +33,10 @@ int main(int argc, char *argv[]){
             exit(EXIT_FAILURE);
         }
         else if (options[idx] == 'v'){
-            verbose = 1;
+            verboseBool = 1;
         }
         else if(options[idx] == 'S'){
-        /* add code to check for standards compliance */
+            strictBool = 1;
         }
 
         else{
@@ -47,8 +47,19 @@ int main(int argc, char *argv[]){
         idx++;
     }
 
+    switch(options[0]){
+        case 'c':
+            create_cmd(verboseBool, strictBool);
+            break;
 
+        case 't':
+            list_cmd(verboseBool, strictBool);
+            break;
 
+        case 'x':
+            extract_cmd(verboseBool, strictBool);
+            break;
+    }
 
     return 0;
 }
