@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -pedantic -g
 
-mytar: mytar.c given.h given.o
+mytar: mytar.c
 	$(CC) $(CFLAGS) -o mytar mytar.c
 all: mytar
 given.o: given.c
