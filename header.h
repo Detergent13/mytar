@@ -16,5 +16,6 @@ struct header {
     char devminor[8];
     char prefix[155];
     /* Here to make it easier to read/write sizeof(header) - full disc block */
+    /* Do not interact with this! It is otherwise insignificant. */
     char padding[12];
 };
