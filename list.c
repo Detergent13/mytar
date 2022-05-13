@@ -10,20 +10,21 @@
 #define OCTAL 8
 #define BLOCKSIZE 512
 #define MAX_NAME_LEN 255
+#define EMPTY_BLOCK_CHKSUM 256
 
 extern int errno;
 
-int list_cmd(char* fileName, char *directories[], int verboseBool, int strictBool);
+int list_cmd(char* fileName, char *directories[], int numDirectories, int verboseBool, int strictBool);
 
 /* This should be removed for final product. Just using this for testing! */
 int main() {
-    list_cmd("../test.tar", NULL, 1, 0);
+    list_cmd("../test.tar", NULL, 0, 1, 0);
 }
 
-int list_cmd(char* fileName, char *directories[], int verboseBool, int strictBool) {
+int list_cmd(char* fileName, char *directories[], int numDirectories, int verboseBool, int strictBool) {
     int fd;
     struct header headerBuffer;
-    
+     
     /* Validate if fileName is a .tar */
     if(!strstr(fileName, ".tar\0")) {
         fprintf(stderr, "Passed file is not a .tar!");
@@ -40,13 +41,26 @@ int list_cmd(char* fileName, char *directories[], int verboseBool, int strictBoo
         exit(errno);
     }
 
-    /* TODO: Think of an elegant way to catch errno for each iteration */
-    /* TODO: Check for end block (should fix 'ghost headers') */
-    /* TODO: Handle prefix concat */
+    /* TODO: Think of an elegant way to catch errno for each iteration - 0, loop, check, body, 0*/
+    /* TODO: Check for end block (should fix 'ghost headers') - if the checksum is just spaces, skip over! */
+    /* TODO: Print 'real names' if symbolic name unavailable */
+    /* TODO: Handle symlinks- is this any different? */
+    /* TODO: Handle specified paths */
+    /* TODO: Validate checksum */
     while(read(fd, &headerBuffer, sizeof(struct header)) > 0) {
         char *fullName;
+        int i;
         /* Read the size of the file */
         unsigned long int fileSize = strtol(headerBuffer.size, NULL, OCTAL);
+        int expectedChecksum = calc_checksum(&headerBuffer);
+        int readChecksum = strtol(headerBuffer.chksum, NULL, OCTAL);
+
+        if(expectedChecksum != readChecksum) {
+            fprintf(stderr, "Expected checksum %d doesn't match read checksum %d\n",
+                    expectedChecksum, readChecksum);
+            exit(EXIT_FAILURE);
+        }
+
         
         errno = 0;
         /* +2 to make space for slash and null-term */
@@ -66,6 +80,10 @@ int list_cmd(char* fileName, char *directories[], int verboseBool, int strictBoo
         }
         else {
             strncpy(fullName, &headerBuffer.name, sizeof(headerBuffer.name));
+        }
+
+        if(directories) {
+            /*for(int i = 0; i < numDirectories; */
         }
 
         if(!verboseBool) {
