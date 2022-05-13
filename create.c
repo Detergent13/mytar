@@ -171,8 +171,6 @@ void archive(char *path, int outfile, int verboseBool){
 
     else if (S_ISLNK(sb.st_mode)){
 
-    /*typeflag is 2*/
-
     write_header(path, outfile, &sb, '2');
 
     return;
