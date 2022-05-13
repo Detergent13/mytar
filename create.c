@@ -4,6 +4,7 @@
 #define MAX_NAME 100
 #define MAX_PATH 256
 #define BLK_SIZE 512
+#define LNK_SIZE 100
 
 void set_uname(uid_t uid, char *dest){
     struct passwd *pw;
@@ -44,9 +45,12 @@ int splice_name(char *path){
 
 }
 
-void write_header(char *path, int outfile, struct stat *sb){
+void write_header(char *path, int outfile, struct stat *sb, char typeflg){
 
     struct header h;
+
+    /* to deal with padding 0s at the end */
+    memset(h, 0, BLK_SIZE);
 
     if (len(path) <= MAX_NAME){
         strcpy(h -> name, path);
@@ -60,16 +64,30 @@ void write_header(char *path, int outfile, struct stat *sb){
         strncpy(h -> prefix, path, splice_idx);
     }
 
-    strcpy(h.uid, sb.st_uid);
-    strcpy(h.gid, sb.st_gid);
-    strcpy(h.size, ltostr(sb.st_size));
-    strcpy(h.mtime, sb.st_mtime);
+    strcpy(h.uid, sb -> st_uid);
+    strcpy(h.gid, sb -> st_gid);
+
+    /* check if its a file since dir and symlinks must be size 0 */
+    if(S_ISREG(sb -> st_mode)){
+        sprintf(h.size, "%011o", (int)sb -> st_size);
+    }
+
+    else{
+        sprintf(h.size, "%011o", 0);
+    }
+
+    *h.typeflag = typeflag;
+    if (S_ISLINK(sb -> st_mode)){
+        readlink(path, h.linkname, LNK_SIZE);
+    }
+
+    sprintf(h.mtime, "%011o", (int) sb -> st_mtime);
     strcpy(h.magic, "ustar");
     strcpy(h.version, "00");
     set_uname(sb.st_uid, &h.uname);
     set_grname(sb.st_gid, &h.gname);
 
-    /*mode,chksum,typeflag,linkname remaining */
+    /*chksum remaining */
 
 
     if (write(outfile, h, BLK_SIZE) == -1){
@@ -117,18 +135,20 @@ void archive(char *path, int outfile, int verboseBool){
         DIR *d;
         struct dirent *e;
 
+        write_header(path, outfile, &sb, '5');
+
         if(!(d = opendir(path))){
             perror("opendir");
             exit(EXIT_FAILURE);
         }
 
-        write_header(path, outfile, &sb);
-
         /*recursive aspect */
         while (e = readdir(d)){
-            strcat(path, '/');
-            strcat(path, e -> d_name);
-            archive(path, outfile, verboseBool);
+            if (strcmp(e -> d_name, '.') && strcmp(e -> d_name, '..')){
+                strcat(path, '/');
+                strcat(path, e -> d_name);
+                archive(path, outfile, verboseBool);
+            }
         }
         closedir(d);
         return;
@@ -144,17 +164,22 @@ void archive(char *path, int outfile, int verboseBool){
             exit(EXIT_FAILURE);
         }
 
+        write_header(path, outfile, &sb, '0');
         write_content(infile, outfile);
-
-        write_header(path, outfile, &sb);
         return;
     }
 
     else if (S_ISLNK(sb.st_mode)){
 
+    /*typeflag is 2*/
 
+    write_header(path, outfile, &sb, '2');
+
+    return;
 
     }
+
+    return;
 
 }
 
