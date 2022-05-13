@@ -5,6 +5,8 @@
 #define MAX_PATH 256
 #define BLK_SIZE 512
 #define LNK_SIZE 100
+#define UID_SIZE 8
+#define MTM_SIZE 12
 
 void set_uname(uid_t uid, char *dest){
     struct passwd *pw;
@@ -37,15 +39,18 @@ int splice_name(char *path){
 
     int idx = (len(path) - 1) - MAX_NAME;
 
-    while (path[idx++] != '/'){
-        /* empty body */
+    while (path[idx] != '/'){
+        if(!path[idx]){
+            perror("path too long");
+            return -1;
+        }
     }
 
     return idx;
 
 }
 
-void write_header(char *path, int outfile, struct stat *sb, char typeflg){
+int write_header(char *path, int outfile, struct stat *sb, char typeflg, int strictBool){
 
     struct header h;
 
@@ -54,22 +59,55 @@ void write_header(char *path, int outfile, struct stat *sb, char typeflg){
 
     if (len(path) <= MAX_NAME){
         strcpy(h -> name, path);
-        strcpy(h -> prefix, '\0');
     }
 
     /* if the path name is longer than 100 chars */
     else{
         int splice_idx = splice_name(path);
+        if (splice_idx == -1){
+            return -1;
+        }
         strcpy(h -> name, path + splice_idx);
         strncpy(h -> prefix, path, splice_idx);
     }
 
-    strcpy(h.uid, sb -> st_uid);
-    strcpy(h.gid, sb -> st_gid);
+    if (sb -> st_uid > 07777777){
+        if (strictBool){
+            perror("Uid too large");
+            return -1;
+        }
+        insert_special_int(h.uid, UID_SIZE, sb -> st_uid);
+    }
+    else{
+        sprintf(h.uid, "%07o", (int) sb -> st_uid);
+    }
+
+    if (sb -> st_gid > 07777777){
+        if (strictBool){
+            perror("Gid too large");
+            return -1;
+        }
+        insert_special_int(h.gid, UID_SIZE, sb -> st_gid);
+    }
+
+    else{
+        sprintf(h.gid, "%07o", (int) sb -> st_gid);
+    }
 
     /* check if its a file since dir and symlinks must be size 0 */
     if(S_ISREG(sb -> st_mode)){
-        sprintf(h.size, "%011o", (int)sb -> st_size);
+
+        if (sb -> st_size > 077777777777){
+            if (strictBool){
+                perror("size too big");
+                return -1;
+            }
+            insert_special_int(h.size, MTM_SIZE, sb -> st_size);
+        }
+
+        else{
+            sprintf(h.size, "%011o", (int)sb -> st_size);
+        }
     }
 
     else{
@@ -77,25 +115,38 @@ void write_header(char *path, int outfile, struct stat *sb, char typeflg){
     }
 
     *h.typeflag = typeflag;
+
+    if (sb -> st_mtime > 077777777777){
+        if (strictBool){
+            perror("mtime too big");
+            return -1;
+        }
+        insert_special_int(h.mtime, MTM_SIZE, sb -> st_mtime);
+    }
+
+    else{
+        sprintf(h.mtime, "%011o", (int) sb -> st_mtime);
+    }
+
     if (S_ISLINK(sb -> st_mode)){
         readlink(path, h.linkname, LNK_SIZE);
     }
 
-    sprintf(h.mtime, "%011o", (int) sb -> st_mtime);
+    /* & with 07777 since the first part of the field is the filetype */
+    sprintf(h.mode, "%07o", sb -> st_mode & 07777);
+
     strcpy(h.magic, "ustar");
     strcpy(h.version, "00");
     set_uname(sb.st_uid, &h.uname);
     set_grname(sb.st_gid, &h.gname);
-
-    /*chksum remaining */
-
+    sprintf(h.chksum, "%08o", calc_checksum(h));
 
     if (write(outfile, h, BLK_SIZE) == -1){
         perror("write");
         exit(EXIT_FAILURE);
     }
 
-    return;
+    return 0;
 
 }
 
@@ -117,7 +168,7 @@ void write_content (int infile, int outfile){
 
 }
 
-void archive(char *path, int outfile, int verboseBool){
+void archive(char *path, int outfile, int verboseBool, int strictBool){
     struct stat sb;
     if (verboseBool){
         printf("%s\n", path);
@@ -143,9 +194,17 @@ void archive(char *path, int outfile, int verboseBool){
         /*recursive aspect */
         while (e = readdir(d)){
             if (strcmp(e -> d_name, '.') && strcmp(e -> d_name, '..')){
+
+                /* "-1" is here since we havent taken into account the '/' */
+                if ((len(path) + len(e -> d_name)) < MAX_PATH - 1){
                 strcat(path, '/');
                 strcat(path, e -> d_name);
                 archive(path, outfile, verboseBool);
+                }
+
+                else{
+                    perror("path too long");
+                }
             }
         }
         closedir(d);
@@ -161,8 +220,10 @@ void archive(char *path, int outfile, int verboseBool){
             exit(EXIT_FAILURE);
         }
 
-        write_header(path, outfile, &sb, '0');
-        write_content(infile, outfile);
+        if((write_header(path, outfile, &sb, '0')) != -1){
+            write_content(infile, outfile);
+        }
+        close(infile);
         return;
     }
 
@@ -175,9 +236,25 @@ void archive(char *path, int outfile, int verboseBool){
 
 }
 
-int create_cmd(int verboseBool, int strictBool, char *root, int outfile) {
+int create_cmd(int verboseBool, int strictBool, char *start, int outfile) {
 
-    archive(root, outfile, verboseBool);
+    char *path = (char *) malloc(MAX_PATH);
+
+    if (!path){
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
+    char *stop_blocks = (char *)calloc(2, BLK_SIZE);
+
+    strcpy(path, start);
+
+    archive(path, outfile, verboseBool, strictBool);
+
+    if (write(outfile, stop_blocks, BLK_SIZE * 2) == -1){
+        perror("write");
+        exit(EXIT_FAILURE);
+    }
 
     return 0;
 }
