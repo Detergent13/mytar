@@ -118,12 +118,10 @@ void write_content (int infile, int outfile){
 }
 
 void archive(char *path, int outfile, int verboseBool){
-
+    struct stat sb;
     if (verboseBool){
         printf("%s\n", path);
     }
-
-    struct stat sb;
 
     if (lstat(path, &sb) == -1){
         perror("stat");
@@ -156,7 +154,6 @@ void archive(char *path, int outfile, int verboseBool){
 
     /* if it is a regular file */
     else if (S_ISREG(sb.st_mode)){
-
         int infile;
 
         if ((infile = open(path, O_RDONLY)) == -1){
@@ -170,11 +167,8 @@ void archive(char *path, int outfile, int verboseBool){
     }
 
     else if (S_ISLNK(sb.st_mode)){
-
-    write_header(path, outfile, &sb, '2');
-
-    return;
-
+        write_header(path, outfile, &sb, '2');
+        return;
     }
 
     return;
