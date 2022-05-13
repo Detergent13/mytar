@@ -20,6 +20,7 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
 
 /* This should be removed for final product. Just using this for testing! */
 int main() {
+    char *dirs[] = {"asgn4/.git/objects/e6/", "asgn4/.git/objects/9b/"};
     list_cmd("../test.tar", NULL, 0, 1, 0);
     return 0;
 }
@@ -29,8 +30,8 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
     struct header headerBuffer;
      
     /* Validate if fileName is a .tar */
-    if(!strstr(fileName, ".tar\0")) {
-        fprintf(stderr, "Passed file is not a .tar!");
+    if(!strstr(fileName, ".tar")) {
+        fprintf(stderr, "Passed file is not a .tar!\n");
         exit(EXIT_FAILURE);
     }
 
@@ -46,7 +47,6 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
 
     /* TODO: Print 'real names' if symbolic name unavailable */
     /* TODO: Handle symlinks- is this any different? */
-    /* TODO: Handle specified paths (TEST THIS) */
     /* TODO: Parse info */
     errno = 0;
     while(read(fd, &headerBuffer, sizeof(struct header)) > 0) {
@@ -66,6 +66,13 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
    
         /* Skip over any fully empty blocks (aka the end padding) */ 
         if(readChecksum == 0 && expectedChecksum == EMPTY_BLOCK_CHKSUM) {
+            if(fileSize > 0) {
+                /* If the file has size > 0, skip ahead by the required # blocks */
+                if(lseek(fd, (fileSize / BLOCKSIZE + 1) * BLOCKSIZE, SEEK_CUR) == -1) {
+                    perror("Couldn't lseek to next header");
+                    exit(errno);
+                }
+            }
             continue;
         }
     
@@ -124,6 +131,13 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
                 }
             }
             if(!inDirectoriesBool) {
+                if(fileSize > 0) {
+                    /* If the file has size > 0, skip ahead by the required # blocks */
+                    if(lseek(fd, (fileSize / BLOCKSIZE + 1) * BLOCKSIZE, SEEK_CUR) == -1) {
+                        perror("Couldn't lseek to next header");
+                        exit(errno);
+                    }
+                }
                 continue;
             }
         }
