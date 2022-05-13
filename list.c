@@ -20,7 +20,7 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
 
 /* This should be removed for final product. Just using this for testing! */
 int main() {
-    list_cmd("../test.tar", NULL, 0, 1, 1);
+    list_cmd("../test.tar", NULL, 0, 1, 0);
     return 0;
 }
 
@@ -44,12 +44,10 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
         exit(errno);
     }
 
-    /* TODO: Think of an elegant way to catch errno for each iteration - 0, loop, check, body, 0*/
-    /* TODO: Check for end block (should fix 'ghost headers') - if the checksum is just spaces, skip over! */
     /* TODO: Print 'real names' if symbolic name unavailable */
     /* TODO: Handle symlinks- is this any different? */
     /* TODO: Handle specified paths (TEST THIS) */
-    /* TODO: Do I exit on wrong version? */
+    /* TODO: Parse info */
     errno = 0;
     while(read(fd, &headerBuffer, sizeof(struct header)) > 0) {
         char *fullName;
@@ -65,7 +63,12 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
         fileSize = strtol(headerBuffer.size, NULL, OCTAL);
         expectedChecksum = calc_checksum(&headerBuffer);
         readChecksum = strtol(headerBuffer.chksum, NULL, OCTAL);
-        
+   
+        /* Skip over any fully empty blocks (aka the end padding) */ 
+        if(readChecksum == 0 && expectedChecksum == EMPTY_BLOCK_CHKSUM) {
+            continue;
+        }
+    
         /* Validate checksum */
         if(expectedChecksum != readChecksum) {
             fprintf(stderr, "Expected checksum %d doesn't match read checksum %d\n",
