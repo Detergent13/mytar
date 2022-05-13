@@ -99,7 +99,11 @@ void write_content (int infile, int outfile){
 
 }
 
-void archive(char *path, int outfile){
+void archive(char *path, int outfile, int verboseBool){
+
+    if (verboseBool){
+        printf("%s\n", path);
+    }
 
     struct stat sb;
 
@@ -124,7 +128,7 @@ void archive(char *path, int outfile){
         while (e = readdir(d)){
             strcat(path, '/');
             strcat(path, e -> d_name);
-            archive(path, outfile);
+            archive(path, outfile, verboseBool);
         }
         closedir(d);
         return;
@@ -156,7 +160,7 @@ void archive(char *path, int outfile){
 
 int create_cmd(int verboseBool, int strictBool, char *root, int outfile) {
 
-    archive(root, outfile);
+    archive(root, outfile, verboseBool);
 
     return 0;
 }
