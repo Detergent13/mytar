@@ -22,7 +22,7 @@
 #define MTM_SIZE 12
 #define NAME_SIZE 32
 
-void set_uname(uid_t uid, char *[32]dest){
+void set_uname(uid_t uid, char *dest){
     struct passwd *pw;
     char *name = (char *)malloc(NAME_SIZE);
 
@@ -49,7 +49,7 @@ void set_uname(uid_t uid, char *[32]dest){
     return;
 }
 
-void set_grname(gid_t gid, char *[32]dest){
+void set_grname(gid_t gid, char *dest){
 
     struct group *g;
     char *name = (char *)malloc(NAME_SIZE);
@@ -183,7 +183,7 @@ int write_header(char *path, int outfile, struct stat *sb, char typeflg, int str
     strcpy(h.version, "00");
     set_uname(sb -> st_uid, &h.uname);
     set_grname(sb -> st_gid, &h.gname);
-    sprintf(h.chksum, "%08o", calc_checksum((char *)&h));
+    sprintf(h.chksum, "%08o", calc_checksum((unsigned char *)&h));
 
     if (write(outfile, &h, BLK_SIZE) == -1){
         perror("write");
