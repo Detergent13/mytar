@@ -1,7 +1,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <pwd.h>
+#include <stdlib.h>
+#include <grp.h>
+#include <dirent.h>
+#include <fcntl.h>
+
 
 #include "util.h"
 #include "header.h"
@@ -55,7 +62,7 @@ int splice_name(char *path){
 
 }
 
-int write_header(char *path, int outfile, stat *sb, char typeflg, int strictBool){
+int write_header(char *path, int outfile, struct stat *sb, char typeflg, int strictBool){
 
     struct header h;
 
@@ -198,13 +205,13 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
 
         /*recursive aspect */
         while (e = readdir(d)){
-            if (strcmp(e -> d_name, '.') && strcmp(e -> d_name, '..')){
+            if (strcmp(e -> d_name, ".") && strcmp(e -> d_name, "..")){
 
                 /* "-1" is here since we havent taken into account the '/' */
                 if ((len(path) + len(e -> d_name)) < MAX_PATH - 1){
                 strcat(path, '/');
                 strcat(path, e -> d_name);
-                archive(path, outfile, verboseBool);
+                archive(path, outfile, verboseBool, strictBool);
                 }
 
                 else{
