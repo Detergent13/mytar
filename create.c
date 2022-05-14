@@ -12,6 +12,7 @@
 
 #include "util.h"
 #include "header.h"
+#include "given.h"
 
 #define MAX_NAME 100
 #define MAX_PATH 256
@@ -19,29 +20,60 @@
 #define LNK_SIZE 100
 #define UID_SIZE 8
 #define MTM_SIZE 12
+#define NAME_SIZE 32
 
 void set_uname(uid_t uid, char *dest){
     struct passwd *pw;
+    char *name = (char *)malloc(NAME_SIZE);
+
+    if(!name){
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
 
     if (!(pw = getpwuid(uid))){
         perror("uid not found");
         exit(EXIT_FAILURE);
     }
 
-    strcpy(dest, pw -> pw_name);
+    if (strlen(pw -> pw_name) >= NAME_SIZE){
+        strncpy(name, pw -> pw_name, NAME_SIZE - 1);
+    }
+
+    else{
+        strcpy(name, pw -> pw_name);
+    }
+
+    strcpy(dest, name);
+    free(name);
     return;
 }
 
 void set_grname(gid_t gid, char *dest){
 
     struct group *g;
+    char *name = (char *)malloc(NAME_SIZE);
+
+    if(!name){
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
 
     if (!(g = getgrgid(gid))){
         perror("gid not found");
         exit(EXIT_FAILURE);
     }
 
-    strcpy(dest, g -> gr_name);
+    if (strlen(g -> gr_name) >= NAME_SIZE){
+        strncpy(name, g -> gr_name, NAME_SIZE - 1);
+    }
+
+    else{
+        strcpy(name, g -> gr_name);
+    }
+
+    strcpy(dest, name);
+    free(name);
     return;
 }
 
@@ -49,7 +81,7 @@ void set_grname(gid_t gid, char *dest){
  * into 100 chars */
 int splice_name(char *path){
 
-    int idx = (len(path) - 1) - MAX_NAME;
+    int idx = (strlen(path) - 1) - MAX_NAME;
 
     while (path[idx] != '/'){
         if(!path[idx]){
@@ -69,7 +101,7 @@ int write_header(char *path, int outfile, struct stat *sb, char typeflg, int str
     /* to deal with padding 0s at the end */
     memset(&h, 0, BLK_SIZE);
 
-    if (len(path) <= MAX_NAME){
+    if (strlen(path) <= MAX_NAME){
         strcpy(h.name, path);
     }
 
@@ -126,7 +158,7 @@ int write_header(char *path, int outfile, struct stat *sb, char typeflg, int str
         sprintf(h.size, "%011o", 0);
     }
 
-    *h.typeflag = typeflag;
+    *h.typeflag = typeflg;
 
     if (sb -> st_mtime > 077777777777){
         if (strictBool){
@@ -140,7 +172,7 @@ int write_header(char *path, int outfile, struct stat *sb, char typeflg, int str
         sprintf(h.mtime, "%011o", (int) sb -> st_mtime);
     }
 
-    if (S_ISLINK(sb -> st_mode)){
+    if (S_ISLNK(sb -> st_mode)){
         readlink(path, h.linkname, LNK_SIZE);
     }
 
@@ -149,11 +181,11 @@ int write_header(char *path, int outfile, struct stat *sb, char typeflg, int str
 
     strcpy(h.magic, "ustar");
     strcpy(h.version, "00");
-    set_uname(sb.st_uid, &h.uname);
-    set_grname(sb.st_gid, &h.gname);
+    set_uname(sb -> st_uid, &h.uname);
+    set_grname(sb -> st_gid, &h.gname);
     sprintf(h.chksum, "%08o", calc_checksum(h));
 
-    if (write(outfile, h, BLK_SIZE) == -1){
+    if (write(outfile, &h, BLK_SIZE) == -1){
         perror("write");
         exit(EXIT_FAILURE);
     }
@@ -196,7 +228,7 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
         DIR *d;
         struct dirent *e;
 
-        write_header(path, outfile, &sb, '5');
+        write_header(path, outfile, &sb, '5', strictBool);
 
         if(!(d = opendir(path))){
             perror("opendir");
@@ -204,12 +236,12 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
         }
 
         /*recursive aspect */
-        while (e = readdir(d)){
+        while ((e = readdir(d))){
             if (strcmp(e -> d_name, ".") && strcmp(e -> d_name, "..")){
 
                 /* "-1" is here since we havent taken into account the '/' */
-                if ((len(path) + len(e -> d_name)) < MAX_PATH - 1){
-                strcat(path, '/');
+                if ((strlen(path) + strlen(e -> d_name)) < MAX_PATH - 1){
+                strcat(path, "/");
                 strcat(path, e -> d_name);
                 archive(path, outfile, verboseBool, strictBool);
                 }
@@ -232,7 +264,7 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
             exit(EXIT_FAILURE);
         }
 
-        if((write_header(path, outfile, &sb, '0')) != -1){
+        if((write_header(path, outfile, &sb, '0', strictBool)) != -1){
             write_content(infile, outfile);
         }
         close(infile);
@@ -240,7 +272,7 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
     }
 
     else if (S_ISLNK(sb.st_mode)){
-        write_header(path, outfile, &sb, '2');
+        write_header(path, outfile, &sb, '2', strictBool);
         return;
     }
 
@@ -251,13 +283,12 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
 int create_cmd(int verboseBool, int strictBool, char *start, int outfile) {
 
     char *path = (char *) malloc(MAX_PATH);
+    char *stop_blocks = (char *)calloc(2, BLK_SIZE);
 
-    if (!path){
-        perror("malloc");
+    if (!path || !stop_blocks){
+        perror("malloc (or calloc)");
         exit(EXIT_FAILURE);
     }
-
-    char *stop_blocks = (char *)calloc(2, BLK_SIZE);
 
     strcpy(path, start);
 
