@@ -13,6 +13,12 @@
 #define EMPTY_BLOCK_CHKSUM 256
 #define MAGIC_LEN 6
 #define VERSION_LEN 2
+/* equivalent to 100 000 000 */
+#define STARTING_MASK 256
+#define PERMS_LEN 9
+#define REG_FLAG 0
+#define SYM_FLAG 2
+#define DIR_FLAG 5
 
 extern int errno;
 
@@ -48,11 +54,15 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
     /* TODO: Print 'real names' if symbolic name unavailable */
     /* TODO: Handle symlinks- is this any different? */
     /* TODO: Parse info */
+    /* Perms, Owner/Group, Size, Mtime, Name */
     errno = 0;
     while(read(fd, &headerBuffer, sizeof(struct header)) > 0) {
         char *fullName;
         int i, expectedChecksum, readChecksum;
         unsigned long int fileSize;
+        char perms[] = "drwxrwxrwx";
+        int mask = STARTING_MASK;
+        int readMode = strtol(headerBuffer.mode, NULL, OCTAL);
 
         /* Check read() error */
         if(errno) {
@@ -96,7 +106,20 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
             fprintf(stderr, "Version doesn't check out: \"%.2s\"\n",
                 (char *)&headerBuffer.version);
             exit(EXIT_FAILURE);
-        }        
+        }       
+
+        /* Mask away the 'd' if it's not a directory */
+        if(strtol(headerBuffer.typeflag, NULL, OCTAL) != DIR_FLAG) {
+            *perms = '-';
+        } 
+
+        /* Check each perms bit and set accordingly */
+        for(i = 0; i < PERMS_LEN; i++) {
+            if(!(mask & readMode)) {
+                perms[i + 1] = '-';
+            }
+            mask >>= 1;
+        }
                 
         errno = 0;
         /* +2 to make space for slash and null-term */
@@ -146,7 +169,7 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
             printf("%s\n", fullName); 
         }
         else {
-            printf("File: %s, size: %ld\n", fullName, fileSize);
+            printf("Mode: %s, File: %s, size: %ld\n", perms, fullName, fileSize);
         }
 
         /* Skip over the body to next header */
