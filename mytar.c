@@ -4,7 +4,8 @@
 int main(int argc, char *argv[]){
 
     char *options;
-    int num_ops, verboseBool = 0, strictBool = 0, idx = 1;
+    int num_ops, verboseBool = 0, strictBool = 0, idx = 1, path_idx = 3;
+    char **paths;
 
     if (argc < 3){
         fprintf(stderr, "Usage: mytar [ctxvS]f tarfile [ path [ ... ] ]\n");
@@ -49,7 +50,11 @@ int main(int argc, char *argv[]){
 
     switch(options[0]){
         case 'c':
-            create_cmd(verboseBool, strictBool);
+            idx = 0;
+            while(path_idx < argc){
+                paths[idx++] = argv[path_idx++];
+            }
+            create_cmd(verboseBool, strictBool, argv[2], paths);
             break;
 
         case 't':

@@ -281,8 +281,9 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
 
 }
 
+TODO: make "start" an array of paths */
 int create_cmd(int verboseBool, int strictBool,
-                char *start, char *outfile_name) {
+                char *outfile_name, char *start) {
 
     int outfile;
     char *path, *stop_blocks;
@@ -312,5 +313,16 @@ int create_cmd(int verboseBool, int strictBool,
         exit(EXIT_FAILURE);
     }
 
+    free(path);
+    free(stop_blocks);
+
     return 0;
+}
+
+int main (int argc, char *argv[]){
+
+    create_cmd(argv[1], 1, argv[2], argv[3]);
+
+    return 0;
+
 }
