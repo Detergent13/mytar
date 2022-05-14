@@ -16,9 +16,12 @@
 /* equivalent to 100 000 000 */
 #define STARTING_MASK 256
 #define PERMS_LEN 9
-#define REG_FLAG 0
-#define SYM_FLAG 2
-#define DIR_FLAG 5
+#define REG_FLAG '0'
+#define REG_FLAG_ALT '\0'
+#define SYM_FLAG '2'
+#define DIR_FLAG '5'
+#define OWNER_LEN 17
+#define SPECIAL_INT_MASK 0x800000
 
 extern int errno;
 
@@ -60,6 +63,7 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
         char *fullName;
         int i, expectedChecksum, readChecksum;
         unsigned long int fileSize;
+        char ownerGroup[OWNER_LEN + 1];
         char perms[] = "drwxrwxrwx";
         int mask = STARTING_MASK;
         int readMode = strtol(headerBuffer.mode, NULL, OCTAL);
@@ -109,7 +113,7 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
         }       
 
         /* Mask away the 'd' if it's not a directory */
-        if(strtol(headerBuffer.typeflag, NULL, OCTAL) != DIR_FLAG) {
+        if(*(headerBuffer.typeflag) != DIR_FLAG) {
             *perms = '-';
         } 
 
@@ -119,6 +123,23 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
                 perms[i + 1] = '-';
             }
             mask >>= 1;
+        }
+
+        if(headerBuffer.uname[0]) {
+            char group[9]; /* magic number, careful */
+            sprintf((char *)&ownerGroup, "%.8s", (char *)&headerBuffer.uname);
+            strcat((char *)&ownerGroup, "/");
+            sprintf((char *)&group, "%.8s", (char *)&headerBuffer.gname);
+            strcat((char *)&ownerGroup, (char *)&group);
+        }
+        else {
+            int uid = strtol(headerBuffer.uid, NULL, OCTAL);
+            if(uid & SPECIAL_INT_MASK) {
+                /* extract special ints here */
+            }
+            else {
+                /* strtol as usual and concat */
+            }
         }
                 
         errno = 0;
@@ -181,8 +202,10 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
             }
         }
 
+        free(fullName);
         /* Clear for next read() */
         errno = 0;
     }
+    close(fd);
     return 0;
 }
