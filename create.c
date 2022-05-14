@@ -1,3 +1,15 @@
+#include <string.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <pwd.h>
+#include <stdlib.h>
+#include <grp.h>
+#include <dirent.h>
+#include <fcntl.h>
+
+
 #include "util.h"
 #include "header.h"
 
@@ -55,10 +67,10 @@ int write_header(char *path, int outfile, struct stat *sb, char typeflg, int str
     struct header h;
 
     /* to deal with padding 0s at the end */
-    memset(h, 0, BLK_SIZE);
+    memset(&h, 0, BLK_SIZE);
 
     if (len(path) <= MAX_NAME){
-        strcpy(h -> name, path);
+        strcpy(h.name, path);
     }
 
     /* if the path name is longer than 100 chars */
@@ -67,8 +79,8 @@ int write_header(char *path, int outfile, struct stat *sb, char typeflg, int str
         if (splice_idx == -1){
             return -1;
         }
-        strcpy(h -> name, path + splice_idx);
-        strncpy(h -> prefix, path, splice_idx);
+        strcpy(h.name, path + splice_idx);
+        strncpy(h.prefix, path, splice_idx);
     }
 
     if (sb -> st_uid > 07777777){
@@ -193,13 +205,13 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
 
         /*recursive aspect */
         while (e = readdir(d)){
-            if (strcmp(e -> d_name, '.') && strcmp(e -> d_name, '..')){
+            if (strcmp(e -> d_name, ".") && strcmp(e -> d_name, "..")){
 
                 /* "-1" is here since we havent taken into account the '/' */
                 if ((len(path) + len(e -> d_name)) < MAX_PATH - 1){
                 strcat(path, '/');
                 strcat(path, e -> d_name);
-                archive(path, outfile, verboseBool);
+                archive(path, outfile, verboseBool, strictBool);
                 }
 
                 else{
