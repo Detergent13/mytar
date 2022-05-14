@@ -182,8 +182,8 @@ int write_header(char *path, int outfile, struct stat *sb, char typeflg, int str
 
     strcpy(h.magic, "ustar");
     strcpy(h.version, "00");
-    set_uname(sb -> st_uid, &h.uname);
-    set_grname(sb -> st_gid, &h.gname);
+    set_uname(sb -> st_uid, (char *)&h.uname);
+    set_grname(sb -> st_gid, (char *)&h.gname);
     sprintf(h.chksum, "%08o", calc_checksum((unsigned char *)&h));
 
     if (write(outfile, &h, BLK_SIZE) == -1){
@@ -281,10 +281,22 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
 
 }
 
-int create_cmd(int verboseBool, int strictBool, char *start, int outfile) {
+int create_cmd(int verboseBool, int strictBool,
+                char *start, char *outfile_name) {
 
-    char *path = (char *) malloc(MAX_PATH);
-    char *stop_blocks = (char *)calloc(2, BLK_SIZE);
+    int outfile;
+    char *path, *stop_blocks;
+
+    outfile = open(outfile_name, O_RDWR | O_CREAT | O_TRUNC,
+                   S_IRUSR | S_IWUSR | S_IRGRP);
+
+    if(outfile == -1){
+        perror("opne");
+        exit(EXIT_FAILURE);
+    }
+
+    path = (char *) malloc(MAX_PATH);
+    stop_blocks = (char *)calloc(2, BLK_SIZE);
 
     if (!path || !stop_blocks){
         perror("malloc (or calloc)");
