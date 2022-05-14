@@ -15,7 +15,7 @@ uint32_t extract_special_int(char *where, int len) {
   if ((len >= sizeof(val)) && (where[0] & 0x80)) {
     /* the top bit is set and we have space
     * extract the last four bytes */
-    val = *(int32_t *)(where+len−sizeof(val));
+    val = *(int32_t *)(where+len-sizeof(val));
     val = ntohl(val); /* convert to host byte order */
   }
   return val;
@@ -40,7 +40,7 @@ int insert_special_int(char *where, size_t size, int32_t val) {
     } else {
       /* game on....*/
       memset(where, 0, size); /* Clear out the buffer */
-      *(int32_t *)(where+size−sizeof(val)) = htonl(val); /* place the int */
+      *(int32_t *)(where+size-sizeof(val)) = htonl(val); /* place the int */
       *where |= 0x80; /* set that high–order bit */
     }
   return err;
