@@ -1,3 +1,8 @@
+#include <string.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include "util.h"
 #include "header.h"
 
@@ -50,15 +55,15 @@ int splice_name(char *path){
 
 }
 
-int write_header(char *path, int outfile, struct stat *sb, char typeflg, int strictBool){
+int write_header(char *path, int outfile, stat *sb, char typeflg, int strictBool){
 
     struct header h;
 
     /* to deal with padding 0s at the end */
-    memset(h, 0, BLK_SIZE);
+    memset(&h, 0, BLK_SIZE);
 
     if (len(path) <= MAX_NAME){
-        strcpy(h -> name, path);
+        strcpy(h.name, path);
     }
 
     /* if the path name is longer than 100 chars */
@@ -67,8 +72,8 @@ int write_header(char *path, int outfile, struct stat *sb, char typeflg, int str
         if (splice_idx == -1){
             return -1;
         }
-        strcpy(h -> name, path + splice_idx);
-        strncpy(h -> prefix, path, splice_idx);
+        strcpy(h.name, path + splice_idx);
+        strncpy(h.prefix, path, splice_idx);
     }
 
     if (sb -> st_uid > 07777777){
