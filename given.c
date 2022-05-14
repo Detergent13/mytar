@@ -11,7 +11,7 @@ uint32_t extract_special_int(char *where, int len) {
   * returns the integer on success, –1 on failure.
   * In spite of the name of htonl(), it converts int32 t
   */
-  int32_t val= −1;
+  int32_t val = -1;
   if ((len >= sizeof(val)) && (where[0] & 0x80)) {
     /* the top bit is set and we have space
     * extract the last four bytes */
