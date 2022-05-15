@@ -290,7 +290,7 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
 }
 
 /* make start an array of paths */
-int create_cmd(int verboseBool, int strictBool, int num_paths
+int create_cmd(int verboseBool, int strictBool, int num_paths,
                 char *outfile_name, char **paths) {
 
     int outfile, i = 0;
