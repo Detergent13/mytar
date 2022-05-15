@@ -6,18 +6,38 @@
 #include <unistd.h>
 #include <utime.h>
 #include <sys/stat.h>
+#include <math.h>
 #include "util.h"
 #include "header.h"
 
 #define OCTAL 8
-#define BLOCKSIZE 512
+#define BLK_SIZE 512
 #define REG_FLAG '0'
 #define REG_FLAG_ALT '\0'
 #define SYM_FLAG '2'
 #define DIR_FLAG '5'
-#define MAX_NAME_LEN 100
-#define MAX_PREFIX_LEN 155
-#define MAX_LINK_LEN 100
+#define MAX_NAME 100
+#define MAX_PREFIX 155
+#define MAX_LINK 100
+
+void extract_file_content (int infile, int outfile, int file_size){
+    int blks_to_read;
+    ssize_t num;
+    char buff[BLK_SIZE];
+
+    blks_to_read = ceil(((double)file_size / BLK_SIZE));
+
+    while((blks_to_read) && (num = read(infile, buff, BLK_SIZE)) > 0){
+        if (write(outfile, buff, BLK_SIZE) == -1){
+            perror("write");
+            exit(EXIT_FAILURE);
+        }
+        blks_to_read--;
+    }
+
+    return;
+
+}
 
 int extract_cmd(char* fileName, int verboseBool, int strictBool) {
     int fd;
@@ -39,6 +59,7 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
         struct stat statBuffer;
         struct utimbuf newTime;
         char *filePath;
+        mode_t permissions;
 
         /* Check read() error */
         if(errno) {
@@ -50,7 +71,7 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
 
         errno = 0;
         /* +4 for leading "./", concat "/", and null-terminator */
-        filePath = calloc(MAX_NAME_LEN + MAX_PREFIX_LEN + 4, sizeof(char));
+        filePath = calloc(MAX_NAME + MAX_PREFIX + 4, sizeof(char));
         if(errno) {
             perror("Couldn't calloc filePath");
             exit(errno);
@@ -66,11 +87,15 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
         strcat(filePath, "./");
         /* If there's something in prefix, add it and a slash */
         if(headerBuffer.prefix[0]) {
-            strncat(filePath, (char *)&headerBuffer.prefix, MAX_PREFIX_LEN);
+            strncat(filePath, (char *)&headerBuffer.prefix, MAX_PREFIX);
             strcat(filePath, "/");
         }
         /* Add the name unconditionally */
-        strncat(filePath, (char *)&headerBuffer.name, MAX_NAME_LEN);
+        strncat(filePath, (char *)&headerBuffer.name, MAX_NAME);
+
+        /* we dont need a second arg since we are guaranteed a string of
+         * octal digits */
+        permissions = (mode_t)strtol(headerBuffer.mode, NULL, OCTAL);
         
 
         /* TODO: Restore permissions (if applicable?) */
@@ -82,17 +107,20 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
         switch (typeFlag) {
             case REG_FLAG_ALT:
             case REG_FLAG: {
-                int fd;
+                int new_file;
                 /* NOTE: This currently grants everything to user.
                  * We'll either need to change these perms in this call,
                  * or just set them again later. If user mysteriously has
                  * perms, this is probably the culprit. */
-                if((fd = creat(filePath, S_IRWXU)) == -1) {
+                if((new_file = creat(filePath, permissions)) == -1) {
                     perror("Couldn't create file");
                     exit(errno);
                 }
-                /* TODO: Write all of the data that comes after the header
-                 * into this new file. Its file descriptor is stored in fd. */
+
+                extract_file_content(fd, new_file, fileSize);
+
+                /* TODO: Write all of the data that comes after the header */
+                /* into this new file. Its file descriptor is stored in fd. */
                 break;
             }
             case SYM_FLAG: {
@@ -101,14 +129,14 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
                  * null-terminator(s) at the end. */ 
                 char *linkValue; 
                 errno = 0;
-                linkValue = calloc(MAX_LINK_LEN + 1, sizeof(char));
+                linkValue = calloc(MAX_LINK + 1, sizeof(char));
                 if(errno) {
                     perror("Couldn't calloc linkValue");
                     exit(errno);
                 }
 
                 strncpy(linkValue, (char *)&headerBuffer.linkname,
-                    MAX_LINK_LEN);
+                    MAX_LINK);
 
                 /* Make a symlink with name filePath that points
                  * to linkValue. It's easy to get mixed up here! */
@@ -122,7 +150,7 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
             }
             case DIR_FLAG: {
                 /* NOTE: Again, watch out for these perms. */
-                if(mkdir(filePath, S_IRWXU)) {
+                if(mkdir(filePath, permissions)) {
                     perror("Couldn't mkdir");
                     exit(errno);
                 }
@@ -162,9 +190,12 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
          * setting mtime. */
 
         /* Skip over the body to next header */
+        /* TODO: could potentially remove this since fd will be used to */
+        /* write contents to file above and will increment automatically */
         if(fileSize > 0) {
             /* If the file has size > 0, skip ahead by the required # blocks */
-            if(lseek(fd, (fileSize / BLOCKSIZE + 1) * BLOCKSIZE, SEEK_CUR) == -1) {
+            if(lseek(fd,
+                     (fileSize / BLK_SIZE + 1) * BLK_SIZE, SEEK_CUR) == -1) {
                 perror("Couldn't lseek to next header");
                 exit(errno);
             }

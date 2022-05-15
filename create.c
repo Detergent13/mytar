@@ -290,17 +290,17 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
 }
 
 /* make start an array of paths */
-int create_cmd(int verboseBool, int strictBool,
-                char *outfile_name, char *start) {
+int create_cmd(int verboseBool, int strictBool, int num_paths
+                char *outfile_name, char **paths) {
 
-    int outfile;
+    int outfile, i = 0;
     char *path, *stop_blocks;
 
     outfile = open(outfile_name, O_RDWR | O_CREAT | O_TRUNC,
                    S_IRUSR | S_IWUSR | S_IRGRP);
 
     if(outfile == -1){
-        perror("opne");
+        perror("open");
         exit(EXIT_FAILURE);
     }
 
@@ -314,9 +314,15 @@ int create_cmd(int verboseBool, int strictBool,
 
     memset(stop_blocks, 0, BLK_SIZE);
 
-    strcpy(path, start);
+    while(num_paths){
 
-    archive(path, outfile, verboseBool, strictBool);
+        strcpy(path, paths[i]);
+        archive(path, outfile, verboseBool, strictBool);
+
+        i++;
+        num_paths--;
+    }
+
 
     if (write(outfile, stop_blocks, BLK_SIZE * 2) == -1){
         perror("write");
@@ -332,7 +338,7 @@ int create_cmd(int verboseBool, int strictBool,
 
 int main (int argc, char *argv[]){
 
-    create_cmd(1, 0, argv[1], argv[2]);
+    create_cmd(1, 0, argc - 3, argv[1], argv[2]);
 
     return 0;
 

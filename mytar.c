@@ -54,7 +54,7 @@ int main(int argc, char *argv[]){
             while(path_idx < argc){
                 paths[idx++] = argv[path_idx++];
             }
-            create_cmd(verboseBool, strictBool, argv[2], paths);
+            create_cmd(verboseBool, strictBool, idx, argv[2], paths);
             break;
 
         case 't':
