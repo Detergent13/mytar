@@ -239,7 +239,7 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
 
         strcat(path, "/");
 
-        write_header(path, outfile, &sb, '5', strictBool);
+        write_header(path, outfile, &sb, '5', strictBool, verboseBool);
 
         if(!(d = opendir(path))){
             perror("opendir");
@@ -253,8 +253,7 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
                 if ((strlen(path) + strlen(e -> d_name)) < MAX_PATH){
                     strcpy(new_path, path);
                     strcat(new_path, e -> d_name);
-                    archive(new_path, outfile, verboseBool,
-                            strictBool, verboseBool);
+                    archive(new_path, outfile, verboseBool, strictBool);
                 }
 
                 else{
