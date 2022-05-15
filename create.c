@@ -297,7 +297,7 @@ int create_cmd(int verboseBool, int strictBool,
     }
 
     path = (char *) malloc(MAX_PATH);
-    stop_blocks = (char *)malloc(BLK_SIZE);
+    stop_blocks = (char *)malloc(BLK_SIZE * 2);
 
     if (!path || !stop_blocks){
         perror("malloc");
