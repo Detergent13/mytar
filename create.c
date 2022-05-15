@@ -215,6 +215,7 @@ void write_content (int infile, int outfile){
 
 void archive(char *path, int outfile, int verboseBool, int strictBool){
     struct stat sb;
+
     if (verboseBool){
         printf("%s\n", path);
     }
@@ -228,6 +229,12 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
     if (S_ISDIR(sb.st_mode)){
         DIR *d;
         struct dirent *e;
+        char *new_path = (char *)malloc(MAX_PATH);
+
+        if (!new_path){
+            perror("malloc");
+            exit(EXIT_FAILURE);
+        }
 
         write_header(path, outfile, &sb, '5', strictBool);
 
@@ -242,9 +249,10 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
 
                 /* "-1" is here since we havent taken into account the '/' */
                 if ((strlen(path) + strlen(e -> d_name)) < MAX_PATH - 1){
-                strcat(path, "/");
-                strcat(path, e -> d_name);
-                archive(path, outfile, verboseBool, strictBool);
+                    strcpy(new_path, path);
+                    strcat(new_path, "/");
+                    strcat(new_path, e -> d_name);
+                    archive(new_path, outfile, verboseBool, strictBool);
                 }
 
                 else{
@@ -253,6 +261,7 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
             }
         }
         closedir(d);
+        free(new_path);
         return;
     }
 
