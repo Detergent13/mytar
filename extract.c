@@ -67,6 +67,8 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
             exit(errno);
         }
 
+        /* TODO: Skip over any empty blocks */
+
         fileSize = strtol(headerBuffer.size, NULL, OCTAL);
 
         errno = 0;
@@ -189,17 +191,6 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
          * The mtime could be disturbed. Do any operations on it before 
          * setting mtime. */
 
-        /* Skip over the body to next header */
-        /* TODO: could potentially remove this since fd will be used to */
-        /* write contents to file above and will increment automatically */
-        if(fileSize > 0) {
-            /* If the file has size > 0, skip ahead by the required # blocks */
-            if(lseek(fd,
-                     (fileSize / BLK_SIZE + 1) * BLK_SIZE, SEEK_CUR) == -1) {
-                perror("Couldn't lseek to next header");
-                exit(errno);
-            }
-        } 
         free(filePath);
         errno = 0;
     }
