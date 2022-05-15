@@ -19,6 +19,7 @@
 #define MAX_NAME 100
 #define MAX_PREFIX 155
 #define MAX_LINK 100
+#define EMPTY_BLOCK_CHKSUM 256
 
 void extract_file_content (int infile, int outfile, int file_size){
     int blks_to_read;
@@ -60,6 +61,7 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
         struct utimbuf newTime;
         char *filePath;
         mode_t permissions;
+        int expectedChecksum, readChecksum;
 
         /* Check read() error */
         if(errno) {
@@ -67,9 +69,22 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
             exit(errno);
         }
 
-        /* TODO: Skip over any empty blocks */
 
         fileSize = strtol(headerBuffer.size, NULL, OCTAL);
+        expectedChecksum = calc_checksum((unsigned char *) &headerBuffer);
+        readChecksum = strtol(headerBuffer.chksum, NULL, OCTAL);
+
+        /* Skip over any fully empty blocks (aka the end padding) */ 
+        if(readChecksum == 0 && expectedChecksum == EMPTY_BLOCK_CHKSUM) {
+            if(fileSize > 0) {
+                /* If the file has size > 0, skip ahead by the required # blocks */
+                if(lseek(fd, (fileSize / BLK_SIZE + 1) * BLK_SIZE, SEEK_CUR) == -1) {
+                    perror("Couldn't lseek to next header");
+                    exit(errno);
+                }
+            }
+            continue;
+        }
 
         errno = 0;
         /* +4 for leading "./", concat "/", and null-terminator */
