@@ -338,7 +338,14 @@ int create_cmd(int verboseBool, int strictBool, int num_paths,
 
 int main (int argc, char *argv[]){
 
-    create_cmd(1, 0, argc - 3, argv[1], argv[2]);
+    char **paths;
+    int idx = 0, path_idx = 2;
+
+    while (path_idx < argc){
+        paths[idx++] = argv[path_idx++];
+    }
+
+    create_cmd(1, 0, idx, argv[1], paths);
 
     return 0;
 
