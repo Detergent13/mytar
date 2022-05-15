@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdint.h>
 #include "util.h"
 #include "header.h"
 
@@ -57,13 +58,14 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
     /* TODO: Print 'real names' if symbolic name unavailable */
     /* TODO: Handle symlinks- is this any different? */
     /* TODO: Parse info */
-    /* Perms, Owner/Group, Size, Mtime, Name */
+    /* TODO: Test user/group */
+    /* Mtime */
     errno = 0;
     while(read(fd, &headerBuffer, sizeof(struct header)) > 0) {
         char *fullName;
         int i, expectedChecksum, readChecksum;
         unsigned long int fileSize;
-        char ownerGroup[OWNER_LEN + 1];
+        char *ownerGroup;
         char perms[] = "drwxrwxrwx";
         int mask = STARTING_MASK;
         int readMode = strtol(headerBuffer.mode, NULL, OCTAL);
@@ -105,7 +107,7 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
         }
 
         /* Check for version, IF in strict mode */
-        if(strictBool && strncmp("00", headerBuffer.version, VERSION_LEN) != 0) {
+        if(strictBool && strncmp("00", headerBuffer.version, VERSION_LEN) != 0){
             /* The .2 limits the # chars we print */
             fprintf(stderr, "Version doesn't check out: \"%.2s\"\n",
                 (char *)&headerBuffer.version);
@@ -125,20 +127,37 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
             mask >>= 1;
         }
 
+        errno = 0;
+        ownerGroup = calloc(OWNER_LEN + 1, sizeof(char));
+        if(errno) {
+            perror("Couldn't calloc ownerGroup");
+            exit(errno);
+        }
+
         if(headerBuffer.uname[0]) {
-            char group[9]; /* magic number, careful */
-            sprintf((char *)&ownerGroup, "%.8s", (char *)&headerBuffer.uname);
-            strcat((char *)&ownerGroup, "/");
-            sprintf((char *)&group, "%.8s", (char *)&headerBuffer.gname);
-            strcat((char *)&ownerGroup, (char *)&group);
+            snprintf(ownerGroup, OWNER_LEN + 1, "%s/%s",
+                (char *)&headerBuffer.uname, 
+                (char*)&headerBuffer.gname);
         }
         else {
-            int uid = strtol(headerBuffer.uid, NULL, OCTAL);
-            if(uid & SPECIAL_INT_MASK) {
+            int uidCheck = strtol(headerBuffer.uid, NULL, OCTAL);
+            if(uidCheck & SPECIAL_INT_MASK) {
                 /* extract special ints here */
+                uint32_t special_uid = 
+                    extract_special_int(headerBuffer.uid,
+                    sizeof(headerBuffer.uid));
+                uint32_t special_gid =
+                     extract_special_int(headerBuffer.gid,
+                     sizeof(headerBuffer.gid));
+                snprintf(ownerGroup, OWNER_LEN + 1, "%ld/%ld",
+                     special_uid,
+                     special_gid);
             }
             else {
                 /* strtol as usual and concat */
+                long int uid = strtol(headerBuffer.uid, NULL, OCTAL);
+                long int gid = strtol(headerBuffer.gid, NULL, OCTAL);
+                snprintf(ownerGroup, OWNER_LEN + 1, "%ld/%ld", uid, gid); 
             }
         }
                 
@@ -190,7 +209,7 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
             printf("%s\n", fullName); 
         }
         else {
-            printf("Mode: %s, File: %s, size: %ld\n", perms, fullName, fileSize);
+            printf("%10.10s %17.17s %8ld %s\n", perms, ownerGroup, fileSize, fullName);
         }
 
         /* Skip over the body to next header */
