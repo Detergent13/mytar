@@ -120,9 +120,6 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
                 }
 
                 extract_file_content(fd, new_file, fileSize);
-
-                /* TODO: Write all of the data that comes after the header */
-                /* into this new file. Its file descriptor is stored in fd. */
                 break;
             }
             case SYM_FLAG: {
@@ -171,12 +168,6 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
             exit(errno);
         } 
 
-        /* TODO: Shoot. I just realised something. Putting a file into a
-         * directory will change the directory's mtime. This is annoying.
-         * I think we'll have to loop through every header again and
-         * set the mtime for all directories again. But don't set their
-         * files' times on this pass! */
-
         /* Preserve atime */
         newTime.actime = statBuffer.st_atime;
         /* Set mtime to mtime from header */
@@ -195,5 +186,69 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
         errno = 0;
     }
     close(fd);
+   
+    /* Set directory mtimes on second pass */ 
+    errno = 0;
+    while(read(fd, &headerBuffer, sizeof(struct header)) > 0) {
+        unsigned long int fileSize;
+        fileSize = strtol(headerBuffer.size, NULL, OCTAL);
+      
+        /* Check read() error */
+        if(errno) {
+            perror("Couldn't read header");
+            exit(errno);
+        }
+
+        
+        if(*headerBuffer.typeflag == DIR_FLAG) {
+            struct stat statBuffer;
+            struct utimbuf newTime;
+            char *filePath;
+
+            errno = 0;
+            /* +4 for leading "./", concat "/", and null-terminator */
+            filePath = calloc(MAX_NAME + MAX_PREFIX + 4, sizeof(char));
+            if(errno) {
+                perror("Couldn't calloc filePath");
+                exit(errno);
+            }
+
+            /* Leading ./ for a valid relative path */
+            strcat(filePath, "./");
+            /* If there's something in prefix, add it and a slash */
+            if(headerBuffer.prefix[0]) {
+                strncat(filePath, (char *)&headerBuffer.prefix, MAX_PREFIX);
+                strcat(filePath, "/");
+            }
+            /* Add the name unconditionally */
+            strncat(filePath, (char *)&headerBuffer.name, MAX_NAME);
+
+        
+            if(lstat(filePath, &statBuffer)) {
+                perror("Failed to stat created file!");
+                exit(errno);
+            } 
+ 
+            /* Preserve atime */
+            newTime.actime = statBuffer.st_atime;
+            /* Set mtime to mtime from header */
+            newTime.modtime = strtol(headerBuffer.mtime, NULL, OCTAL);
+            /* Actually write the time */
+            if(utime(filePath, &newTime)) {
+                perror("Couldn't set utime");
+                exit(errno);
+            }
+        }
+
+        /* Skip over the body to next header */
+        if(fileSize > 0) {
+            /* If the file has size > 0, skip ahead by the required # blocks */
+            if(lseek(fd, (fileSize / BLK_SIZE + 1) * BLK_SIZE, SEEK_CUR) == -1) {
+                perror("Couldn't lseek to next header");
+                exit(errno);
+            }
+        }
+        errno = 0;
+    }
     return 0;
 }

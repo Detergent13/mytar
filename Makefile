@@ -16,7 +16,7 @@ list.o: list.c
     $(CC) $(CFLAGS) -c list.c
 
 extract.o: extract.c
-    $(CC) $(CFLAGS) -c extract.c
+    $(CC) $(CFLAGS) -c -lm extract.c
 
 util.o: util.c
     $(CC) $(CFLAGS) -c util.c
