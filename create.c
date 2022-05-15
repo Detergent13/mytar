@@ -216,10 +216,6 @@ void write_content (int infile, int outfile){
 void archive(char *path, int outfile, int verboseBool, int strictBool){
     struct stat sb;
 
-    if (verboseBool){
-        printf("%s\n", path);
-    }
-
     if (lstat(path, &sb) == -1){
         perror("stat");
         exit(EXIT_FAILURE);
@@ -236,6 +232,8 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
             exit(EXIT_FAILURE);
         }
 
+        strcat(path, "/");
+
         write_header(path, outfile, &sb, '5', strictBool);
 
         if(!(d = opendir(path))){
@@ -247,10 +245,8 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
         while ((e = readdir(d))){
             if (strcmp(e -> d_name, ".") && strcmp(e -> d_name, "..")){
 
-                /* "-1" is here since we havent taken into account the '/' */
-                if ((strlen(path) + strlen(e -> d_name)) < MAX_PATH - 1){
+                if ((strlen(path) + strlen(e -> d_name)) < MAX_PATH){
                     strcpy(new_path, path);
-                    strcat(new_path, "/");
                     strcat(new_path, e -> d_name);
                     archive(new_path, outfile, verboseBool, strictBool);
                 }
@@ -284,6 +280,10 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
     else if (S_ISLNK(sb.st_mode)){
         write_header(path, outfile, &sb, '2', strictBool);
         return;
+    }
+
+    if (verboseBool){
+        printf("%s\n", path);
     }
 
     return;
