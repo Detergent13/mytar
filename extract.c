@@ -115,7 +115,6 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
         permissions = (mode_t)strtol(headerBuffer.mode, NULL, OCTAL);
         
 
-        /* TODO: Restore permissions (if applicable?) */
         /* P.S. I know that I don't have to put every case in curly brackets
          * normally. But this gets around a quirk of C that throws a fit
          * about mixed declarations otherwise. Something about a case just
