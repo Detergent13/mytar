@@ -28,4 +28,4 @@ test: mytar
     ./mytar
 
 clean:
-
+	rm mytar.o create.o list.o extract.o util.o given.o
