@@ -315,6 +315,7 @@ int create_cmd(int verboseBool, int strictBool,
 
     free(path);
     free(stop_blocks);
+    close(outfile);
 
     return 0;
 }
