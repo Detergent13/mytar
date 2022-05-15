@@ -321,7 +321,7 @@ int create_cmd(int verboseBool, int strictBool,
 
 int main (int argc, char *argv[]){
 
-    create_cmd(1, 1, argv[2], argv[3]);
+    create_cmd(1, 1, argv[1], argv[2]);
 
     return 0;
 
