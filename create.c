@@ -258,7 +258,6 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
         }
         closedir(d);
         free(new_path);
-        return;
     }
 
     /* if it is a regular file */
@@ -274,12 +273,10 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
             write_content(infile, outfile);
         }
         close(infile);
-        return;
     }
 
     else if (S_ISLNK(sb.st_mode)){
         write_header(path, outfile, &sb, '2', strictBool);
-        return;
     }
 
     if (verboseBool){
