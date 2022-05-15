@@ -177,14 +177,14 @@ int write_header(char *path, int outfile, struct stat *sb, char typeflg, int str
         readlink(path, h.linkname, LNK_SIZE);
     }
 
-    /* & with 07777 since the first part of the field is the filetype */
+    /* & with 07777 since we only want the permissions part of the field */
     sprintf(h.mode, "%07o", sb -> st_mode & 07777);
 
     strcpy(h.magic, "ustar");
     strcpy(h.version, "00");
     set_uname(sb -> st_uid, (char *)&h.uname);
     set_grname(sb -> st_gid, (char *)&h.gname);
-    sprintf(h.chksum, "%08o", calc_checksum((unsigned char *)&h));
+    sprintf(h.chksum, "%07o", calc_checksum((unsigned char *)&h));
 
     if (write(outfile, &h, BLK_SIZE) == -1){
         perror("write");
@@ -297,12 +297,14 @@ int create_cmd(int verboseBool, int strictBool,
     }
 
     path = (char *) malloc(MAX_PATH);
-    stop_blocks = (char *)calloc(2, BLK_SIZE);
+    stop_blocks = (char *)malloc(BLK_SIZE);
 
     if (!path || !stop_blocks){
-        perror("malloc (or calloc)");
+        perror("malloc");
         exit(EXIT_FAILURE);
     }
+
+    memset(stop_blocks, 0, BLK_SIZE);
 
     strcpy(path, start);
 
@@ -322,7 +324,7 @@ int create_cmd(int verboseBool, int strictBool,
 
 int main (int argc, char *argv[]){
 
-    create_cmd(1, 1, argv[1], argv[2]);
+    create_cmd(1, 0, argv[1], argv[2]);
 
     return 0;
 
