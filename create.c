@@ -95,12 +95,17 @@ int splice_name(char *path){
 
 }
 
-int write_header(char *path, int outfile, struct stat *sb, char typeflg, int strictBool){
+int write_header(char *path, int outfile, struct stat *sb,
+                 char typeflg, int strictBool, int verboseBool){
 
     struct header h;
 
     /* to deal with padding 0s at the end */
     memset(&h, 0, BLK_SIZE);
+
+    if (verboseBool){
+            printf("%s\n", path);
+        }
 
     if (strlen(path) <= MAX_NAME){
         strcpy(h.name, path);
@@ -248,7 +253,8 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
                 if ((strlen(path) + strlen(e -> d_name)) < MAX_PATH){
                     strcpy(new_path, path);
                     strcat(new_path, e -> d_name);
-                    archive(new_path, outfile, verboseBool, strictBool);
+                    archive(new_path, outfile, verboseBool,
+                            strictBool, verboseBool);
                 }
 
                 else{
@@ -269,18 +275,15 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
             exit(EXIT_FAILURE);
         }
 
-        if((write_header(path, outfile, &sb, '0', strictBool)) != -1){
+        if((write_header(path, outfile, &sb, '0',
+                         strictBool, verboseBool)) != -1){
             write_content(infile, outfile);
         }
         close(infile);
     }
 
     else if (S_ISLNK(sb.st_mode)){
-        write_header(path, outfile, &sb, '2', strictBool);
-    }
-
-    if (verboseBool){
-        printf("%s\n", path);
+        write_header(path, outfile, &sb, '2', strictBool, verboseBool);
     }
 
     return;
