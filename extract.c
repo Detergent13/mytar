@@ -31,11 +31,16 @@ void extract_file_content (int infile, int outfile, int file_size){
     blks_to_read = (file_size + (BLK_SIZE - 1)) / BLK_SIZE;
 
     while((blks_to_read) && (num = read(infile, buff, BLK_SIZE)) > 0){
-        if (write(outfile, buff, BLK_SIZE) == -1){
+        if (write(outfile, buff, num) == -1){
             perror("write");
             exit(EXIT_FAILURE);
         }
         blks_to_read--;
+    }
+
+    if (num == -1){
+        printf("Something went wrong.");
+        exit(EXIT_FAILURE);
     }
 
     return;
