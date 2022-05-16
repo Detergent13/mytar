@@ -89,6 +89,7 @@ int splice_name(char *path){
             perror("path too long");
             return -1;
         }
+        idx++;
     }
 
     return idx;
@@ -108,7 +109,12 @@ int write_header(char *path, int outfile, struct stat *sb,
         }
 
     if (strlen(path) <= MAX_NAME){
-        strcpy(h.name, path);
+        if (strlen(path) == MAX_NAME){
+            strncpy(h.name, path, MAX_NAME);
+        }
+        else{
+            strcpy(h.name, path);
+        }
     }
 
     /* if the path name is longer than 100 chars */
@@ -117,7 +123,12 @@ int write_header(char *path, int outfile, struct stat *sb,
         if (splice_idx == -1){
             return -1;
         }
-        strcpy(h.name, path + splice_idx);
+        if strlen(path + splice_idx + 1 == MAX_NAME){
+            strncpy(h.name, path + splice_idx + 1, MAX_NAME);
+        }
+        else{
+            strcpy(h.name, path + splice_idx + 1);
+        }
         strncpy(h.prefix, path, splice_idx);
     }
 
@@ -223,7 +234,7 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
 
     if (lstat(path, &sb) == -1){
         perror("stat");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     /* if it is a directory */
@@ -235,6 +246,12 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
         if (!new_path){
             perror("malloc");
             exit(EXIT_FAILURE);
+        }
+
+        if (strlen(path) >= MAX_PATH - 1){
+            fprintf(stderr, "path too long");
+            free(new_path);
+            return;
         }
 
         strcat(path, "/");
