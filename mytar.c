@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 int main(int argc, char *argv[]){
 
@@ -12,7 +13,7 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
     options = argv[1];
-    num_ops = len(options);
+    num_ops = strlen(options);
 
     if (num_ops < 2 || num_ops > 4){
         fprintf(stderr, "Usage: mytar [ctxvS]f tarfile [ path [ ... ] ]\n");
@@ -30,7 +31,7 @@ int main(int argc, char *argv[]){
         /* we hit the end of the second argument without encountering an 'f' */
         if (options[idx] == '\0'){
             fprintf(stderr, "Usage: mytar [ctxvS]f tarfile [ path [ ... ] ]\n");
-            printf("f required in second argument\n")
+            printf("f required in second argument\n");
             exit(EXIT_FAILURE);
         }
         else if (options[idx] == 'v'){
