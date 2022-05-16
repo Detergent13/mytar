@@ -60,7 +60,7 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
     errno = 0;
     while(read(fd, &headerBuffer, sizeof(struct header)) > 0) {
         unsigned long int fileSize;
-        unsigned char typeFlag = *headerBuffer.typeflag;
+        unsigned char typeFlag = headerBuffer.typeflag[0];
         struct stat statBuffer;
         struct utimbuf newTime;
         char *filePath;
@@ -169,7 +169,8 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
 
                 /* Make a symlink with name filePath that points
                  * to linkValue. It's easy to get mixed up here! */
-                if(symlink(linkValue, filePath)) {
+                errno = 0;
+                if(symlink(linkValue, filePath) && errno != EEXIST) {
                     perror("Couldn't create symlink");
                     exit(errno);
                 }
@@ -179,7 +180,8 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
             }
             case DIR_FLAG: {
                 /* NOTE: Again, watch out for these perms. */
-                if(mkdir(filePath, permissions)) {
+                errno = 0;
+                if(mkdir(filePath, permissions) && errno != EEXIST) {
                     perror("Couldn't mkdir");
                     exit(errno);
                 }
