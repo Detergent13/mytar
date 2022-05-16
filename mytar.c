@@ -1,5 +1,10 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include "create.h"
+#include "list.h"
+#include "extract.h"
+
 
 int main(int argc, char *argv[]){
 
@@ -12,7 +17,7 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
     options = argv[1];
-    num_ops = len(options);
+    num_ops = strlen(options);
 
     if (num_ops < 2 || num_ops > 4){
         fprintf(stderr, "Usage: mytar [ctxvS]f tarfile [ path [ ... ] ]\n");
