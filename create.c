@@ -123,7 +123,7 @@ int write_header(char *path, int outfile, struct stat *sb,
         if (splice_idx == -1){
             return -1;
         }
-        if strlen(path + splice_idx + 1 == MAX_NAME){
+        if (strlen(path + splice_idx + 1) == MAX_NAME){
             strncpy(h.name, path + splice_idx + 1, MAX_NAME);
         }
         else{
