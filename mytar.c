@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
+#include "mytar.h"
+
+extern int errno;
 
 int main(int argc, char *argv[]){
 
@@ -20,7 +24,7 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
-    if (options[0] != 'c' || options[0] != 't' || options[0] != 'x'){
+    if (options[0] != 'c' && options[0] != 't' && options[0] != 'x'){
         fprintf(stderr, "Usage: mytar [ctxvS]f tarfile [ path [ ... ] ]\n");
         printf("second argument requires a c, t or x as first char\n");
         exit(EXIT_FAILURE);
@@ -49,21 +53,34 @@ int main(int argc, char *argv[]){
         idx++;
     }
 
+    errno = 0;
+    paths = malloc(sizeof(char *) * (argc - path_idx));
+    if(errno) {
+        perror("Couldn't malloc paths");
+        exit(errno);
+    }
+
+    idx = 0;
+    while(path_idx < argc){
+        paths[idx++] = argv[path_idx++];
+    }
+
     switch(options[0]){
         case 'c':
-            idx = 0;
-            while(path_idx < argc){
-                paths[idx++] = argv[path_idx++];
-            }
             create_cmd(verboseBool, strictBool, idx, argv[2], paths);
             break;
 
         case 't':
-            list_cmd(verboseBool, strictBool);
+            if(idx) {
+                list_cmd(argv[2], paths, idx, verboseBool, strictBool);
+            }
+            else {
+                list_cmd(argv[2], NULL, 0, verboseBool, strictBool);
+            }
             break;
 
         case 'x':
-            extract_cmd(verboseBool, strictBool);
+            extract_cmd(argv[2], verboseBool, strictBool);
             break;
     }
 
