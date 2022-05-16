@@ -79,8 +79,9 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
         /* Skip over any fully empty blocks (aka the end padding) */ 
         if(readChecksum == 0 && expectedChecksum == EMPTY_BLOCK_CHKSUM) {
             if(fileSize > 0) {
-                /* If the file has size > 0, skip ahead by the required # blocks */
-                if(lseek(fd, (fileSize / BLK_SIZE + 1) * BLK_SIZE, SEEK_CUR) == -1) {
+                /* Skip over*/
+                if(lseek(fd, BLK_SIZE, SEEK_CUR)
+                     == -1) {
                     perror("Couldn't lseek to next header");
                     exit(errno);
                 }
@@ -259,7 +260,7 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
         /* Skip over the body to next header */
         if(fileSize > 0) {
             /* If the file has size > 0, skip ahead by the required # blocks */
-            if(lseek(fd, (fileSize / BLK_SIZE + 1) * BLK_SIZE, SEEK_CUR) == -1) {
+            if(lseek(fd, (fileSize / BLK_SIZE + 1) * BLK_SIZE, SEEK_CUR) == -1){
                 perror("Couldn't lseek to next header");
                 exit(errno);
             }

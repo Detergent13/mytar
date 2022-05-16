@@ -4,9 +4,6 @@
 #define CHKSUM_START 148
 #define CHKSUM_END 155
 
-/* NOTE: This is a bit janky. Redesign with struct elements if we're having issues. */
-/* Simple sum of all octets in the header. Treat the checksum as <SPACE> chars
- * when calculating it. */
 /* We pass the header as a char to make pointer arithmetic easy. */
 int calc_checksum(unsigned char *h) {
     int total = 0;

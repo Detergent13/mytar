@@ -28,7 +28,9 @@
 
 extern int errno;
 
-int list_cmd(char* fileName, char *directories[], int numDirectories, int verboseBool, int strictBool) {
+int list_cmd(char* fileName, char *directories[], int numDirectories,
+    int verboseBool, int strictBool) {
+
     int fd;
     struct header headerBuffer;
      
@@ -79,8 +81,9 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
         /* Skip over any fully empty blocks (aka the end padding) */ 
         if(readChecksum == 0 && expectedChecksum == EMPTY_BLOCK_CHKSUM) {
             if(fileSize > 0) {
-                /* If the file has size > 0, skip ahead by the required # blocks */
-                if(lseek(fd, (fileSize / BLOCKSIZE + 1) * BLOCKSIZE, SEEK_CUR) == -1) {
+                /* If the file has size > 0, skip ahead by that many blocks */
+                if(lseek(fd, (fileSize / BLOCKSIZE + 1) * BLOCKSIZE, SEEK_CUR)
+                     == -1) {
                     perror("Couldn't lseek to next header");
                     exit(errno);
                 }
@@ -90,7 +93,8 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
     
         /* Validate checksum */
         if(expectedChecksum != readChecksum) {
-            fprintf(stderr, "Expected checksum %d doesn't match read checksum %d\n",
+            fprintf(stderr,
+                    "Expected checksum %d doesn't match read checksum %d\n",
                     expectedChecksum, readChecksum);
             exit(EXIT_FAILURE);
         }
@@ -172,12 +176,15 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
          * behaviour if either the prefix or name isn't null terminated.
          * (Which is entirely possible with the standard) */
         if(headerBuffer.prefix[0]) {
-            strncpy(fullName, (char *)&headerBuffer.prefix, sizeof(headerBuffer.prefix));
+            strncpy(fullName, (char *)&headerBuffer.prefix,
+                 sizeof(headerBuffer.prefix));
             strcat(fullName, "/");
-            strncat(fullName, (char *)&headerBuffer.name, sizeof(headerBuffer.name));
+            strncat(fullName, (char *)&headerBuffer.name,
+                 sizeof(headerBuffer.name));
         }
         else {
-            strncpy(fullName, (char *)&headerBuffer.name, sizeof(headerBuffer.name));
+            strncpy(fullName, (char *)&headerBuffer.name,
+                sizeof(headerBuffer.name));
         }
 
         errno = 0;
@@ -193,7 +200,8 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
 
         /* Format the time into a string */
         errno = 0;
-        strftime((char *)mtime_str, MTIME_STR_LEN + 1, "%Y-%m-%d %H:%M", &m_time);
+        strftime((char *)mtime_str, MTIME_STR_LEN + 1, "%Y-%m-%d %H:%M",
+             &m_time);
         if(errno) {
             perror("Couldn't format time");
             exit(errno);
@@ -213,8 +221,9 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
             }
             if(!inDirectoriesBool) {
                 if(fileSize > 0) {
-                    /* If the file has size > 0, skip ahead by the required # blocks */
-                    if(lseek(fd, (fileSize / BLOCKSIZE + 1) * BLOCKSIZE, SEEK_CUR) == -1) {
+                    /* Skip the body */
+                    if(lseek(fd, (fileSize / BLOCKSIZE + 1) * BLOCKSIZE,
+                             SEEK_CUR) == -1) {
                         perror("Couldn't lseek to next header");
                         exit(errno);
                     }
@@ -234,7 +243,8 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
         /* Skip over the body to next header */
         if(fileSize > 0) {
             /* If the file has size > 0, skip ahead by the required # blocks */
-            if(lseek(fd, (fileSize / BLOCKSIZE + 1) * BLOCKSIZE, SEEK_CUR) == -1) {
+            if(lseek(fd, (fileSize / BLOCKSIZE + 1) * BLOCKSIZE, SEEK_CUR)
+                == -1) {
                 perror("Couldn't lseek to next header");
                 exit(errno);
             }
