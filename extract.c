@@ -21,12 +21,10 @@
 #define MAX_LINK 100
 #define EMPTY_BLOCK_CHKSUM 256
 
-void extract_file_content (int infile, int outfile, int file_size){
+void extract_file_content (int infile, int outfile, unsigned int file_size){
     int blks_to_read;
     ssize_t num;
     char buff[BLK_SIZE];
-
-    /*blks_to_read = (int)ceil(((double)file_size / BLK_SIZE));*/
 
     blks_to_read = (file_size + (BLK_SIZE - 1)) / BLK_SIZE;
 
