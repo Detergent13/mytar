@@ -143,7 +143,8 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
 
                 /* using open */
 
-                if((new_file = open(filePath, O_RDWR|O_CREAT, permissions)) == -1){
+                if((new_file = open(filePath, O_RDWR|O_CREAT,
+                                    permissions)) == -1){
                     perror("open");
                     exit(EXIT_FAILURE);
                 }
