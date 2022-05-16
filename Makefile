@@ -3,7 +3,7 @@ CFLAGS = -Wall -pedantic -g
 
 all: mytar
 
-mytar: mytar.o create.o list.o extract.o util.o given.o
+mytar: mytar.o create.o list.o extract.o util.o given.o mytar.h
 	$(CC) $(CFLAGS) -o mytar mytar.o create.o list.o extract.o util.o given.o
 
 mytar.o: mytar.c
