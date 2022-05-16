@@ -22,27 +22,26 @@
 #define EMPTY_BLOCK_CHKSUM 256
 
 void extract_file_content (int infile, int outfile, unsigned int file_size){
-    int blks_to_read;
-    ssize_t num;
-    char buff[BLK_SIZE];
+    char *buff;
 
-    blks_to_read = (file_size + (BLK_SIZE - 1)) / BLK_SIZE;
-
-    while((blks_to_read) && (num = read(infile, buff, BLK_SIZE)) > 0){
-        if (write(outfile, buff, num) == -1){
-            perror("write");
-            exit(EXIT_FAILURE);
-        }
-        blks_to_read--;
+    errno = 0;
+    buff = malloc(sizeof(char) * file_size);
+    if(errno) {
+        perror("Couldn't malloc buff");
+        exit(errno);
     }
 
-    if (num == -1){
-        printf("Something went wrong.");
-        exit(EXIT_FAILURE);
+    if(read(infile, buff, file_size) == -1) {
+        perror("Couldn't read from archive");
+        exit(errno);
     }
 
+    if(write(outfile, buff, file_size) == -1) {
+        perror("Couldn't write file");
+        exit(errno);
+    }
+    
     return;
-
 }
 
 int extract_cmd(char* fileName, int verboseBool, int strictBool) {
