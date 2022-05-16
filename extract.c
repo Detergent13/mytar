@@ -133,9 +133,19 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
                  * We'll either need to change these perms in this call,
                  * or just set them again later. If user mysteriously has
                  * perms, this is probably the culprit. */
+
+                /* old ver
                 if((new_file = creat(filePath, permissions)) == -1) {
                     perror("Couldn't create file");
                     exit(errno);
+                }
+                */
+
+                /* using open */
+
+                if((new_file = open(filePath, O_RDWR|O_CREAT, permissions)) == -1){
+                    perror("open");
+                    exit(EXIT_FAILURE);
                 }
 
                 extract_file_content(fd, new_file, fileSize);
