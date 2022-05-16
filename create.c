@@ -335,7 +335,7 @@ int create_cmd(int verboseBool, int strictBool, int num_paths,
 
     return 0;
 }
-
+/*
 int main (int argc, char *argv[]){
 
     char **paths;
@@ -350,3 +350,4 @@ int main (int argc, char *argv[]){
     return 0;
 
 }
+*/
