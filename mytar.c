@@ -1,10 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "create.h"
-#include "list.h"
-#include "extract.h"
-
+#include "mytar.h"
 
 int main(int argc, char *argv[]){
 
@@ -35,7 +32,7 @@ int main(int argc, char *argv[]){
         /* we hit the end of the second argument without encountering an 'f' */
         if (options[idx] == '\0'){
             fprintf(stderr, "Usage: mytar [ctxvS]f tarfile [ path [ ... ] ]\n");
-            printf("f required in second argument\n")
+            printf("f required in second argument\n");
             exit(EXIT_FAILURE);
         }
         else if (options[idx] == 'v'){

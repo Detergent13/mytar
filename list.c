@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <time.h> 
 #include "util.h"
 #include "header.h"
 
@@ -23,17 +24,9 @@
 #define DIR_FLAG '5'
 #define OWNER_LEN 17
 #define SPECIAL_INT_MASK 0x800000
+#define MTIME_STR_LEN 16
 
 extern int errno;
-
-int list_cmd(char* fileName, char *directories[], int numDirectories, int verboseBool, int strictBool);
-
-/* This should be removed for final product. Just using this for testing! */
-int main() {
-    char *dirs[] = {"asgn4/.git/objects/e6/", "asgn4/.git/objects/9b/"};
-    list_cmd("../test.tar", NULL, 0, 1, 0);
-    return 0;
-}
 
 int list_cmd(char* fileName, char *directories[], int numDirectories, int verboseBool, int strictBool) {
     int fd;
@@ -66,9 +59,12 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
         int i, expectedChecksum, readChecksum;
         unsigned long int fileSize;
         char *ownerGroup;
-        char perms[] = "drwxrwxrwx";
+        char perms[] = "-rwxrwxrwx";
         int mask = STARTING_MASK;
         int readMode = strtol(headerBuffer.mode, NULL, OCTAL);
+        struct tm m_time;
+        long int readTime;
+        char *mtime_str;
 
         /* Check read() error */
         if(errno) {
@@ -77,7 +73,7 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
         }
 
         fileSize = strtol(headerBuffer.size, NULL, OCTAL);
-        expectedChecksum = calc_checksum(&headerBuffer);
+        expectedChecksum = calc_checksum((unsigned char *)&headerBuffer);
         readChecksum = strtol(headerBuffer.chksum, NULL, OCTAL);
    
         /* Skip over any fully empty blocks (aka the end padding) */ 
@@ -114,10 +110,13 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
             exit(EXIT_FAILURE);
         }       
 
-        /* Mask away the 'd' if it's not a directory */
-        if(*(headerBuffer.typeflag) != DIR_FLAG) {
-            *perms = '-';
-        } 
+        /* Add d or l for directory/link */
+        if(*(headerBuffer.typeflag) == DIR_FLAG) {
+            *perms = 'd';
+        }
+        else if(*(headerBuffer.typeflag) == SYM_FLAG) {
+            *perms = 'l';
+        }
 
         /* Check each perms bit and set accordingly */
         for(i = 0; i < PERMS_LEN; i++) {
@@ -181,6 +180,25 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
             strncpy(fullName, (char *)&headerBuffer.name, sizeof(headerBuffer.name));
         }
 
+        errno = 0;
+        mtime_str = calloc(MTIME_STR_LEN + 1, sizeof(char));
+        if(errno) {
+            perror("Couldn't calloc mtime_str");
+            exit(errno);
+        }
+
+        /* Read mtime and format it into a tm struct */
+        readTime = strtol(headerBuffer.mtime, NULL, OCTAL);
+        memcpy(&m_time, localtime(&readTime), sizeof(struct tm));
+
+        /* Format the time into a string */
+        errno = 0;
+        strftime((char *)mtime_str, MTIME_STR_LEN + 1, "%Y-%m-%d %H:%M", &m_time);
+        if(errno) {
+            perror("Couldn't format time");
+            exit(errno);
+        }
+
         /* If we've passed a non-null directories[], check all directories
          * against the beginning of current fullName and don't print if
          * it doesn't match an element of directories[]. */
@@ -209,7 +227,8 @@ int list_cmd(char* fileName, char *directories[], int numDirectories, int verbos
             printf("%s\n", fullName); 
         }
         else {
-            printf("%10.10s %17.17s %8ld %s\n", perms, ownerGroup, fileSize, fullName);
+            printf("%10.10s %17.17s %8ld %16.16s %s\n",
+                 perms, ownerGroup, fileSize, mtime_str, fullName);
         }
 
         /* Skip over the body to next header */
