@@ -26,7 +26,7 @@ void extract_file_content (int infile, int outfile, int file_size){
     ssize_t num;
     char buff[BLK_SIZE];
 
-    blks_to_read = ceil(((double)file_size / BLK_SIZE));
+    blks_to_read = (int)ceil(((double)file_size / BLK_SIZE));
 
     while((blks_to_read) && (num = read(infile, buff, BLK_SIZE)) > 0){
         if (write(outfile, buff, BLK_SIZE) == -1){
