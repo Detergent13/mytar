@@ -25,7 +25,7 @@
 void check_dirs(char *path){
 
     int idx;
-    char *cpy
+    char *cpy;
     mode_t perms = S_IRWXU | S_IRWXG | S_IROTH;
     errno = 0;
     cpy = (char *)malloc((strlen(path) + 1) * sizeof(char));
