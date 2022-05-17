@@ -24,8 +24,9 @@
 /* checks if the path contains non-existent dirs and creates them */
 void check_dirs(char *path){
 
-    int idx, errno = 0;
+    int idx;
     mode_t perms = S_IRWXU | S_IRWXG | S_IROTH;
+    errno = 0;
     char *cpy = (char *)malloc((strlen(path) + 1) * sizeof(char));
 
     if (errno){
