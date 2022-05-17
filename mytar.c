@@ -80,7 +80,12 @@ int main(int argc, char *argv[]){
             break;
 
         case 'x':
-            extract_cmd(argv[2], verboseBool, strictBool);
+            if(idx) {
+                extract_cmd(argv[2], paths, idx, verboseBool, strictBool);
+            }
+            else {
+                extract_cmd(argv[2], NULL, 0, verboseBool, strictBool);
+            }
             break;
     }
 

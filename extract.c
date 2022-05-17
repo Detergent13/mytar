@@ -50,7 +50,8 @@ void extract_file_content (int infile, int outfile, unsigned int file_size){
     return;
 }
 
-int extract_cmd(char* fileName, int verboseBool, int strictBool) {
+int extract_cmd(char* fileName, char *directories[], int numDirectories,
+         int verboseBool, int strictBool) {
     int fd;
     struct header headerBuffer;
 
@@ -70,6 +71,7 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
         struct stat statBuffer;
         struct utimbuf newTime;
         char *filePath;
+        char *pathNoLead;
         mode_t permissions;
         int expectedChecksum, readChecksum;
 
@@ -120,6 +122,35 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
         }
         /* Add the name unconditionally */
         strncat(filePath, (char *)&headerBuffer.name, MAX_NAME);
+
+        /* Make a path without the leading ./ for directory validation */
+        pathNoLead = filePath + 2;
+        /* If we've passed a non-null directories[], check all directories
+         * against the beginning of current fullName and don't print if
+         * it doesn't match an element of directories[]. */
+        if(directories) {
+            int i;
+            int inDirectoriesBool = 0;
+            for(i = 0; i < numDirectories; i++) {
+                int pathLength = strlen(directories[i]);
+                if(strncmp(pathNoLead, directories[i], pathLength) == 0) {
+                    inDirectoriesBool = 1;
+                    break;
+                }
+            }
+            if(!inDirectoriesBool) {
+                if(fileSize > 0) {
+                    /* Skip the body */
+                    if(lseek(fd, (fileSize / BLK_SIZE + 1) * BLK_SIZE,
+                             SEEK_CUR) == -1) {
+                        perror("Couldn't lseek to next header");
+                        exit(errno);
+                    }
+                }
+                continue;
+            }
+        }
+
 
         /* we dont need a second arg since we are guaranteed a string of
          * octal digits */
