@@ -23,6 +23,7 @@
 
 void extract_file_content (int infile, int outfile, unsigned int file_size){
     char *buff;
+    int padding = file_size % BLK_SIZE;
 
     errno = 0;
     buff = malloc(sizeof(char) * file_size);
@@ -38,6 +39,11 @@ void extract_file_content (int infile, int outfile, unsigned int file_size){
 
     if(write(outfile, buff, file_size) == -1) {
         perror("Couldn't write file");
+        exit(errno);
+    }
+
+    if(lseek(infile, BLK_SIZE - padding, SEEK_CUR) == -1){
+        perror("lseek padding of file content failed");
         exit(errno);
     }
     
@@ -143,7 +149,7 @@ int extract_cmd(char* fileName, int verboseBool, int strictBool) {
 
                 /* using open */
 
-                if((new_file = open(filePath, O_RDWR|O_CREAT,
+                if((new_file = open(filePath, O_RDWR|O_CREAT|O_TRUNC,
                                     permissions)) == -1){
                     perror("open");
                     exit(EXIT_FAILURE);
