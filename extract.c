@@ -283,8 +283,8 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
         /* Set mtime to mtime from header */
         newTime.modtime = strtol(headerBuffer.mtime, NULL, OCTAL);
 
-        times[0] = newTime.actime;
-        times[1] = newTime.modtime;
+        times[0].tv_sec = newTime.actime;
+        times[1].tv_sec = newTime.modtime;
 
         if (utimensat(AT_FDCWD, filePath, times, AT_SYMLINK_NOFOLLOW)){
             perror("Couln't set utime");
