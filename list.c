@@ -229,6 +229,7 @@ int list_cmd(char* fileName, char *directories[], int numDirectories,
                     }
                 }
                 continue;
+                free(fullName);
             }
         }
 

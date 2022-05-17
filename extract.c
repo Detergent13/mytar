@@ -148,6 +148,7 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
                     }
                 }
                 continue;
+                free(filePath);
             }
         }
 
@@ -306,6 +307,7 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
                     }
                 }
                 continue;
+                free(filePath);
             }
         }
 
