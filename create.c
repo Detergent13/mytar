@@ -339,6 +339,9 @@ int create_cmd(int verboseBool, int strictBool, int num_paths,
     while(num_paths){
 
         strcpy(path, paths[i]);
+        if (path[strlen(path) - 1] == '/'){
+            path[strlen(path) - 1] = '\0';
+        }
         archive(path, outfile, verboseBool, strictBool);
 
         i++;
