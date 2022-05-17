@@ -25,9 +25,10 @@
 void check_dirs(char *path){
 
     int idx;
+    char *cpy
     mode_t perms = S_IRWXU | S_IRWXG | S_IROTH;
     errno = 0;
-    char *cpy = (char *)malloc((strlen(path) + 1) * sizeof(char));
+    cpy = (char *)malloc((strlen(path) + 1) * sizeof(char));
 
     if (errno){
         perror("malloc failed in check_dirs");
