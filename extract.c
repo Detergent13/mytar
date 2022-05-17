@@ -21,6 +21,40 @@
 #define MAX_LINK 100
 #define EMPTY_BLOCK_CHKSUM 256
 
+/* checks if the path contains non-existent dirs and creates them */
+void check_dirs(char *path){
+
+    int idx, errno = 0;
+    mode_t perms = S_IRWXU | S_IRWXG | S_IROTH;
+    char *cpy = (char *)malloc((strlen(path) + 1) * sizeof(char));
+
+    if (errno){
+        perror("malloc failed in check_dirs");
+        exit(EXIT_FAILURE);
+    }
+
+    strcpy(cpy, path);
+
+    for (idx = 0; cpy[idx]; idx++){
+        if (cpy[idx] == '/'){
+            if (idx >= strlen(path) - 1){
+                free(cpy);
+                return;
+            }
+            cpy[idx] = '\0';
+            if(mkdir(cpy, perms) && errno != EEXIST) {
+                perror("Couldn't mkdir");
+                exit(errno);
+            }
+            cpy[idx] = '/';
+        }
+    }
+
+    free(cpy);
+    return;
+
+}
+
 void extract_file_content (int infile, int outfile, unsigned int file_size){
     char *buff;
     int padding = file_size % BLK_SIZE;
@@ -151,6 +185,8 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
                 free(filePath);
             }
         }
+
+        check_dirs(pathNoLead);
 
 
         /* we dont need a second arg since we are guaranteed a string of
