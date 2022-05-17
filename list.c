@@ -8,6 +8,7 @@
 #include <time.h> 
 #include "util.h"
 #include "header.h"
+#include "given.h"
 
 #define OCTAL 8
 #define BLOCKSIZE 512
@@ -50,11 +51,6 @@ int list_cmd(char* fileName, char *directories[], int numDirectories,
         exit(errno);
     }
 
-    /* TODO: Print 'real names' if symbolic name unavailable */
-    /* TODO: Handle symlinks- is this any different? */
-    /* TODO: Parse info */
-    /* TODO: Test user/group */
-    /* Mtime */
     errno = 0;
     while(read(fd, &headerBuffer, sizeof(struct header)) > 0) {
         char *fullName;
@@ -153,8 +149,8 @@ int list_cmd(char* fileName, char *directories[], int numDirectories,
                      extract_special_int(headerBuffer.gid,
                      sizeof(headerBuffer.gid));
                 snprintf(ownerGroup, OWNER_LEN + 1, "%ld/%ld",
-                     special_uid,
-                     special_gid);
+                     (long int)special_uid,
+                     (long int)special_gid);
             }
             else {
                 /* strtol as usual and concat */
