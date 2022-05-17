@@ -280,10 +280,19 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
         newTime.actime = statBuffer.st_atime;
         /* Set mtime to mtime from header */
         newTime.modtime = strtol(headerBuffer.mtime, NULL, OCTAL);
-        /* Actually write the time */
-        if(utime(filePath, &newTime)) {
-            perror("Couldn't set utime");
-            exit(errno);
+
+        if (typeFlag == SYM_FLAG){
+            if (lutime(filePath, &newTime)){
+                perror("Couldn't set utime for sym link");
+                exit(errno);
+            }
+        }
+        else{
+            /* Actually write the time */
+            if(utime(filePath, &newTime)) {
+                perror("Couldn't set utime");
+                exit(errno);
+            }
         }
 
         /* NOTE: We shouldn't be touching the created file after this.
