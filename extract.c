@@ -260,12 +260,53 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
     errno = 0;
     while(read(fd, &headerBuffer, sizeof(struct header)) > 0) {
         unsigned long int fileSize;
+        char *filePath, *pathNoLead;
         fileSize = strtol(headerBuffer.size, NULL, OCTAL);
       
         /* Check read() error */
         if(errno) {
             perror("Couldn't read header");
             exit(errno);
+        }
+
+        filePath = calloc(MAX_NAME + MAX_PREFIX + 4, sizeof(char));
+        if(errno) {
+            perror("Couldn't calloc filePath");
+            exit(errno);
+        }
+
+        strcat(filePath, "./");
+        /* If there's something in prefix, add it and a slash */
+        if(headerBuffer.prefix[0]) {
+            strncat(filePath, (char *)&headerBuffer.prefix, MAX_PREFIX);
+            strcat(filePath, "/");
+        }
+        /* Add the name unconditionally */
+        strncat(filePath, (char *)&headerBuffer.name, MAX_NAME);
+
+        pathNoLead = filePath + 2;
+
+        if(directories) {
+            int i;
+            int inDirectoriesBool = 0;
+            for(i = 0; i < numDirectories; i++) {
+                int pathLength = strlen(directories[i]);
+                if(strncmp(pathNoLead, directories[i], pathLength) == 0){
+                    inDirectoriesBool = 1;
+                    break;
+                }
+            }
+            if(!inDirectoriesBool) {
+                if(fileSize > 0) {
+                    /* Skip the body */
+                    if(lseek(fd, (fileSize / BLK_SIZE + 1) * BLK_SIZE,
+                             SEEK_CUR) == -1) {
+                        perror("Couldn't lseek to next header");
+                        exit(errno);
+                    }
+                }
+                continue;
+            }
         }
 
         
