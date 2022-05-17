@@ -331,6 +331,11 @@ int create_cmd(int verboseBool, int strictBool, int num_paths,
 
     memset(stop_blocks, 0, BLK_SIZE);
 
+    if (num_paths == 0){
+        paths[0] = ".";
+        num_paths = 1;
+    }
+
     while(num_paths){
 
         strcpy(path, paths[i]);
