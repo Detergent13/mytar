@@ -284,10 +284,13 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
         newTime.modtime = strtol(headerBuffer.mtime, NULL, OCTAL);
 
         times[0].tv_sec = newTime.actime;
+        times[0].tv_nsec = 0;
         times[1].tv_sec = newTime.modtime;
+        times[1].tv_nsec = 0;
 
         if (utimensat(AT_FDCWD, filePath, times, AT_SYMLINK_NOFOLLOW)){
-            perror("Couln't set utime");
+            perror("Couldn't set utime");
+            exit(errno);
         }
 
         /* old ver
@@ -305,7 +308,7 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
         errno = 0;
     }
     close(fd);
-   
+ 
     /* Set directory mtimes on second pass */ 
     errno = 0;
     while(read(fd, &headerBuffer, sizeof(struct header)) > 0) {
