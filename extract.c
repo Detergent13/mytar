@@ -130,7 +130,7 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
         if(readChecksum == 0 && expectedChecksum == EMPTY_BLOCK_CHKSUM) {
             int nextExpected;
             int nextRead;
-            int num = 0;
+            unsigned char num = 0;
 
             /* Read next block */
             errno = 0;
