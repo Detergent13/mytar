@@ -111,7 +111,7 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
         struct utimbuf newTime;
         char *filePath;
         char *pathNoLead;
-        mode_t permissions;
+        mode_t permissions, default_perms;
         int expectedChecksum, readChecksum;
         struct timespec times[2];
 
@@ -244,7 +244,15 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
         /* we dont need a second arg since we are guaranteed a string of
          * octal digits */
         permissions = (mode_t)strtol(headerBuffer.mode, NULL, OCTAL);
-        
+
+        default_perms = S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH;
+
+        if (permissions & S_IXUSR || permissions & S_IXGRP ||
+            permissions & S_IXOTH){
+            default_perms = default_perms|S_IRWXU|S_IRWXG|S_IRWXO;
+        }
+
+        permissions |= default_perms;
 
         /* P.S. I know that I don't have to put every case in curly brackets
          * normally. But this gets around a quirk of C that throws a fit
