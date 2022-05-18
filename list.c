@@ -96,12 +96,6 @@ int list_cmd(char* fileName, char *directories[], int numDirectories,
                 exit(EXIT_FAILURE);
             }
 
-            /* Test if there's any unexpected data at the end. */
-            if((read(fd, &headerBuffer, 1)) != 0) {
-                fprintf(stderr, "Archive is corrupted! Exiting. read");
-                exit(EXIT_FAILURE);
-            }
-
             /* If we haven't errored out by now, we must be at the end
              * of a valid archive! We're all done. */
             exit(EXIT_SUCCESS);
