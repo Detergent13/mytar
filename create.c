@@ -27,6 +27,9 @@
 #define GID_MAX 07777777
 #define MTIME_MAX 077777777777
 #define ALL_PERMS 07777 
+#define REG_FLAG '0'
+#define LINK_FLAG '2'
+#define DIR_FLAG '5'
 
 void set_uname(uid_t uid, char *dest){
     struct passwd *pw;
@@ -261,7 +264,7 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
 
         strcat(path, "/");
 
-        write_header(path, outfile, &sb, '5', strictBool, verboseBool);
+        write_header(path, outfile, &sb, DIR_FLAG, strictBool, verboseBool);
 
         if(!(d = opendir(path))){
             perror("opendir");
@@ -296,7 +299,7 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
             exit(EXIT_FAILURE);
         }
 
-        if((write_header(path, outfile, &sb, '0',
+        if((write_header(path, outfile, &sb, REG_FLAG,
                          strictBool, verboseBool)) != -1){
             write_content(infile, outfile);
         }
@@ -304,7 +307,7 @@ void archive(char *path, int outfile, int verboseBool, int strictBool){
     }
 
     else if (S_ISLNK(sb.st_mode)){
-        write_header(path, outfile, &sb, '2', strictBool, verboseBool);
+        write_header(path, outfile, &sb, LINK_FLAG, strictBool, verboseBool);
     }
 
     return;
