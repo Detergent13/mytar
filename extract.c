@@ -149,7 +149,7 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
             }
 
             /* Test if there's any unexpected data at the end. */
-            if(read(fd, &headerBuffer, 1) != 0) {
+            if(read(fd, &headerBuffer, 1) <= 0) {
                 fprintf(stderr, "Archive is corrupted! Exiting.");
                 exit(EXIT_FAILURE);
             }
