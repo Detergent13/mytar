@@ -134,7 +134,7 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
 
             /* Read next block */
             errno = 0;
-            read(fd, &headerBuffer, sizeof(struct header));
+            num = read(fd, &headerBuffer, sizeof(struct header));
             if(errno) {
                 perror("Couldn't check next block");
                 exit(errno);
