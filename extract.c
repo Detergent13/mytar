@@ -130,6 +130,7 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
         if(readChecksum == 0 && expectedChecksum == EMPTY_BLOCK_CHKSUM) {
             int nextExpected;
             int nextRead;
+            int num;
 
             /* Read next block */
             errno = 0;
@@ -149,7 +150,7 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
             }
 
             /* Test if there's any unexpected data at the end. */
-            if((read(fd, &headerBuffer, 1)) != 0) {
+            if((num = read(fd, &headerBuffer, 1)) != 0) {
                 fprintf(stderr, "Archive is corrupted! Exiting.");
                 exit(EXIT_FAILURE);
             }
