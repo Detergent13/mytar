@@ -21,6 +21,8 @@
 #define MAX_PREFIX 155
 #define MAX_LINK 100
 #define EMPTY_BLOCK_CHKSUM 256
+#define MAGIC_LEN 6
+#define VERSION_LEN 2
 
 /* checks if the path contains non-existent dirs and creates them */
 void check_dirs(char *path){
@@ -124,18 +126,61 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
         expectedChecksum = calc_checksum((unsigned char *) &headerBuffer);
         readChecksum = strtol(headerBuffer.chksum, NULL, OCTAL);
 
-        /* Skip over any fully empty blocks (aka the end padding) */ 
+        /* Check for valid end of archive */
         if(readChecksum == 0 && expectedChecksum == EMPTY_BLOCK_CHKSUM) {
-            if(fileSize > 0) {
-                /* Skip over*/
-                if(lseek(fd, BLK_SIZE, SEEK_CUR)
-                     == -1) {
-                    perror("Couldn't lseek to next header");
-                    exit(errno);
-                }
+            int nextExpected;
+            int nextRead;
+
+            /* Read next block */
+            errno = 0;
+            read(fd, &headerBuffer, sizeof(struct header));
+            if(errno) {
+                perror("Couldn't check next block");
+                exit(errno);
             }
-            continue;
+
+            nextExpected = calc_checksum((unsigned char *)&headerBuffer);
+            nextRead = strtol(headerBuffer.chksum, NULL, OCTAL);
+
+            /* Check if next block is also all zeroes */
+            if(nextRead != 0 || nextExpected != EMPTY_BLOCK_CHKSUM) {
+                fprintf(stderr, "Archive is corrupted! Exiting.");
+                exit(EXIT_FAILURE);
+            }
+
+            /* Test if there's any unexpected data at the end. */
+            if(read(fd, &headerBuffer, 1) != 0) {
+                fprintf(stderr, "Archive is corrupted! Exiting.");
+                exit(EXIT_FAILURE);
+            }
+
+            /* If we haven't errored out by now, we must be at the end
+             * of a valid archive! We're all done. */
+            exit(EXIT_SUCCESS);
         }
+
+        /* Validate checksum */
+        if(expectedChecksum != readChecksum) {
+            fprintf(stderr,
+                    "Expected checksum %d doesn't match read checksum %d\n",
+                    expectedChecksum, readChecksum);
+            exit(EXIT_FAILURE);
+        }
+
+        /* Check for magic string - minus one since strncmp stops on null */
+        if(strncmp("ustar", headerBuffer.magic, MAGIC_LEN - 1) != 0) {
+            fprintf(stderr, "Magic string doesn't check out: \"%s\"\n",
+                    (char *)&headerBuffer.magic);
+            exit(EXIT_FAILURE);
+        }
+
+        /* Check for version, IF in strict mode */
+        if(strictBool && strncmp("00", headerBuffer.version, VERSION_LEN) != 0){
+            /* The .2 limits the # chars we print */
+            fprintf(stderr, "Version doesn't check out: \"%.2s\"\n",
+                    (char *)&headerBuffer.version);
+            exit(EXIT_FAILURE);
+        }    
 
         errno = 0;
         /* +4 for leading "./", concat "/", and null-terminator */
@@ -190,8 +235,11 @@ int extract_cmd(char* fileName, char *directories[], int numDirectories,
             }
         }
 
-        check_dirs(pathNoLead);
+        if(verboseBool) {
+            printf("%s", filePath);
+        }
 
+        check_dirs(pathNoLead);
 
         /* we dont need a second arg since we are guaranteed a string of
          * octal digits */

@@ -74,17 +74,37 @@ int list_cmd(char* fileName, char *directories[], int numDirectories,
         expectedChecksum = calc_checksum((unsigned char *)&headerBuffer);
         readChecksum = strtol(headerBuffer.chksum, NULL, OCTAL);
    
-        /* Skip over any fully empty blocks (aka the end padding) */ 
+        /* Check for valid end of archive */
         if(readChecksum == 0 && expectedChecksum == EMPTY_BLOCK_CHKSUM) {
-            if(fileSize > 0) {
-                /* If the file has size > 0, skip ahead by that many blocks */
-                if(lseek(fd, (fileSize / BLOCKSIZE + 1) * BLOCKSIZE, SEEK_CUR)
-                     == -1) {
-                    perror("Couldn't lseek to next header");
-                    exit(errno);
-                }
+            int nextExpected;
+            int nextRead;
+
+            /* Read next block */
+            errno = 0;
+            read(fd, &headerBuffer, sizeof(struct header));
+            if(errno) {
+                perror("Couldn't check next block");
+                exit(errno);
             }
-            continue;
+
+            nextExpected = calc_checksum((unsigned char *)&headerBuffer);
+            nextRead = strtol(headerBuffer.chksum, NULL, OCTAL);
+
+            /* Check if next block is also all zeroes */
+            if(nextRead != 0 || nextExpected != EMPTY_BLOCK_CHKSUM) {
+                fprintf(stderr, "Archive is corrupted! Exiting.");
+                exit(EXIT_FAILURE);
+            }
+
+            /* Test if there's any unexpected data at the end. */
+            if(read(fd, &headerBuffer, 1) != 0) {
+                fprintf(stderr, "Archive is corrupted! Exiting.");
+                exit(EXIT_FAILURE);
+            }
+
+            /* If we haven't errored out by now, we must be at the end
+             * of a valid archive! We're all done. */
+            exit(EXIT_SUCCESS);
         }
     
         /* Validate checksum */
