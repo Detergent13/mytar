@@ -22,6 +22,11 @@
 #define UID_SIZE 8
 #define MTM_SIZE 12
 #define NAME_SIZE 32
+#define _SIZE_MAX 077777777777 
+#define UID_MAX 07777777
+#define GID_MAX 07777777
+#define MTIME_MAX 077777777777
+#define ALL_PERMS 07777 
 
 void set_uname(uid_t uid, char *dest){
     struct passwd *pw;
@@ -132,7 +137,7 @@ int write_header(char *path, int outfile, struct stat *sb,
         strncpy(h.prefix, path, splice_idx);
     }
 
-    if (sb -> st_uid > 07777777){
+    if (sb -> st_uid > UID_MAX){
         if (strictBool){
             perror("Uid too large");
             return -1;
@@ -143,7 +148,7 @@ int write_header(char *path, int outfile, struct stat *sb,
         sprintf(h.uid, "%07o", (int) sb -> st_uid);
     }
 
-    if (sb -> st_gid > 07777777){
+    if (sb -> st_gid > GID_MAX){
         if (strictBool){
             perror("Gid too large");
             return -1;
@@ -158,7 +163,7 @@ int write_header(char *path, int outfile, struct stat *sb,
     /* check if its a file since dir and symlinks must be size 0 */
     if(S_ISREG(sb -> st_mode)){
 
-        if (sb -> st_size > 077777777777){
+        if (sb -> st_size > _SIZE_MAX){
             if (strictBool){
                 perror("size too big");
                 return -1;
@@ -177,7 +182,7 @@ int write_header(char *path, int outfile, struct stat *sb,
 
     *h.typeflag = typeflg;
 
-    if (sb -> st_mtime > 077777777777){
+    if (sb -> st_mtime > MTIME_MAX){
         if (strictBool){
             perror("mtime too big");
             return -1;
@@ -194,7 +199,7 @@ int write_header(char *path, int outfile, struct stat *sb,
     }
 
     /* & with 07777 since we only want the permissions part of the field */
-    sprintf(h.mode, "%07o", sb -> st_mode & 07777);
+    sprintf(h.mode, "%07o", sb -> st_mode & ALL_PERMS);
 
     strcpy(h.magic, "ustar");
     strcpy(h.version, "00");
